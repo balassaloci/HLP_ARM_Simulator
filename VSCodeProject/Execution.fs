@@ -81,8 +81,7 @@ let executeInstruction (state:State) (instruction:Instruction) =
 
     executeGeneric operation operands state
 
-let executeInstructionGeneric (state:State) (instruction:Instruction) =
-
+// let executeInstructionGeneric (state:State) (instruction:Instruction) =
 // let operation1: ArithmeticOperation = ADD, UpdateStatus, AL
 // let instruction = ArithmeticInstruction (operation1, (R0, R1, MixedOp <| Literal 55))
 

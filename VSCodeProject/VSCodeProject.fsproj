@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <Name>Visual</Name>
-    <AssemblyName>Visual</AssemblyName>
-    <RootNamespace>Visual</RootNamespace>
+    <Name>Visual2</Name>
+    <AssemblyName>Visual2</AssemblyName>
+    <RootNamespace>Visual2</RootNamespace>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>d767126d-c09a-4fda-955e-a148febd66d5</ProjectGuid>
+    <ProjectGuid>44d40ae0-d0d8-40db-9c4b-c83b93b0aa4f</ProjectGuid>
     <OutputType>Exe</OutputType>
     <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -44,6 +44,8 @@
   <ItemGroup>
     <None Include="App.config" />
     <Compile Include="Machine.fs" />
+    <Compile Include="Instruction.fs" />
+    <Compile Include="Functions.fs" />
     <Compile Include="Execution.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>

@@ -1,6 +1,7 @@
 module Main
 
 open Machine
+open Instruction
 open Execution
 
 
@@ -20,6 +21,8 @@ let state = State.makeInitialState()
 
 let main argv =
     let operation1: ArithmeticOperation = ADD, UpdateStatus, AL
+    // let operation = IAR operation'
+    // let operands = ArithmeticOperands (R0, R1, MixedOp <| Literal 55)
     let instruction = ArithmeticInstruction (operation1, (R0, R1, MixedOp <| Literal 55))
     let newState = executeInstruction state instruction
 
