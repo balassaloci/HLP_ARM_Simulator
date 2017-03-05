@@ -37,21 +37,11 @@ type ShiftOperandsPattern = RegOperand * RegOperand * MixedOperand
 type CompareOperandsPattern = RegOperand * ExecOperand
 
 
-type IOperand = | Reg of RegOperand | Mix of MixedOperand | Exe of ExecOperand
-type IOperands = | ArithmeticOperands of ArithmeticOperandsPattern
-                 | ShiftOperands of ShiftOperandsPattern
-                 | CompareOperands of CompareOperandsPattern
-                 | BitwiseOperands of BitwiseOperandsPattern
-
-type OperationCore = | AR of Arithmetic | SH of Shift
-                     | CO of Compare | BI of Bitwise
-type OperationType = | IAR of ArithmeticOperation
-                     | ISH of ShiftOperation
-                     | ICO of CompareOperation
-                     | IBI of BitwiseOperation
 type Instruction =
     | ArithmeticInstruction of ArithmeticOperation * ArithmeticOperandsPattern
     | ShiftInstruction of ShiftOperation * ShiftOperandsPattern
     | CompareInstruction of CompareOperation * CompareOperandsPattern
     | BitwiseInstruction of BitwiseOperation * BitwiseOperandsPattern
 
+
+    

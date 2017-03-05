@@ -27,64 +27,83 @@ let conditionHolds = function
     | CS | HS -> statusRegister.C
     | _ -> false
 
-let operandValue state = function
-    | Reg x -> registerOperandValue x state
-    | Mix x -> mixedOperandValue x state
-    | Exe x -> execOperandValue x state
 
-let getOperands = function
-    | ArithmeticOperands (a,b,c) -> [|Reg a; Reg b; Exe c|]
-    | BitwiseOperands (a, b, c) -> [|Reg a; Reg b; Exe c|]
-    | ShiftOperands (a, b, c) -> [|Reg a; Reg b; Mix c|]
-    | CompareOperands (a, b) -> [|Reg a; Exe b|]
+// let checkCarry (add:bool) (result:int) =
+//     if add && result >= (1<<<32) then
+//         1
+//     elif not <| add && result >= 0 then
+//         0
+//     else
+//         0
 
-let getFunction = function
-    | AR x -> getArithmeticFunction x        
-    | SH x -> getShiftFunction x
-    | CO x -> getCompareFunction x
-    | BI x -> getBitwiseFunction x
+// let checkOverflow () =
+//     0
 
-let getOperation = function
-    | IAR (c,s,cond) -> (AR c,s,cond)
-    | ISH (c,s,cond) -> (SH c,s,cond)
-    | ICO (c, cond) -> (CO c, IgnoreStatus, cond)
-    | IBI (c,s,cond) -> (BI c,s,cond)
+let executeArithmetic (operation:ArithmeticOperation)
+                      (operands:ArithmeticOperandsPattern)
+                      (state:State) =
+    let core, S, cond = operation
+    match conditionHolds cond with
+    | true ->
+        let dest, op1, op2 = operands
+        let op1Val = State.registerValue op1 state
+        let op2Val = execOperandValue op2 state
+        let result = getArithmeticFunction core <| op1Val <| op2Val
+        // Need to update CSPR here
+        State.updateRegister dest result state
+    | false ->
+        state
 
-let executeGeneric operation operands state =
-    let core, S, cond = getOperation operation
+let executeShift (operation:ShiftOperation)
+                 (operands:ShiftOperandsPattern)
+                 (state:State) =
+    let core, S, cond = operation
     if conditionHolds cond then
-        let operandArray = getOperands operands
-        let dest = match operandArray.[0] with | Reg x -> x
-
-        let operandValues = Array.map (operandValue state) operandArray
-        let foo = getFunction core
-        let result = match operandValues with
-                     | [|a;b;c|] -> foo b c
-                     | [|a;b|] -> foo a b
-                     | _ -> 0
-        // TODO: update CSPR
+        let dest, op1, op2 = operands
+        let op1Val = State.registerValue op1 state
+        let op2Val = mixedOperandValue op2 state
+        let result = getShiftFunction core <| op1Val <| op2Val
+        // Need to update CSPR here
         State.updateRegister dest result state
     else
         state
 
+let executeCompare (operation:CompareOperation)
+                   (operands:CompareOperandsPattern)
+                   (state:State) =
+    let core, cond = operation
+    if conditionHolds cond then
+        let op1, op2 = operands
+        let op1Val = State.registerValue op1 state
+        let op2Val = execOperandValue op2 state
+        let result = getCompareFunction core <| op1Val <| op2Val
+        // Need to update CSPR here
+        state
+    else
+        state
+
+let executeBitwise (operation:BitwiseOperation)
+                   (operands:BitwiseOperandsPattern)
+                   (state:State) =
+    let core, S, cond = operation
+    match conditionHolds cond with
+    | true ->
+        let dest, op1, op2 = operands
+        let op1Val = State.registerValue op1 state
+        let op2Val = execOperandValue op2 state
+        let result = getBitwiseFunction core <| op1Val <| op2Val
+        // Need to update CSPR here
+        State.updateRegister dest result state
+    | false ->
+        state
+
 let executeInstruction (state:State) (instruction:Instruction) =
-    let operands, operation = 
         match instruction with
         | ArithmeticInstruction (operation, operands) ->
-            ArithmeticOperands operands ,IAR operation
+            executeArithmetic operation operands
         | ShiftInstruction (operation, operands) ->
-            ShiftOperands operands ,ISH operation
+            executeShift operation operands
         | CompareInstruction (operation, operands) ->
-            CompareOperands operands ,ICO operation
+            executeCompare operation operands
         | BitwiseInstruction (operation, operands) ->
-            BitwiseOperands operands, IBI operation
-
-    executeGeneric operation operands state
-
-// let executeInstructionGeneric (state:State) (instruction:Instruction) =
-// let operation1: ArithmeticOperation = ADD, UpdateStatus, AL
-// let instruction = ArithmeticInstruction (operation1, (R0, R1, MixedOp <| Literal 55))
-
-// 0
-// let newState = executeInstruction initialState instruction
-
+            executeBitwise operation operands
