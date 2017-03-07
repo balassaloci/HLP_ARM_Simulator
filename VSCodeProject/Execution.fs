@@ -32,3 +32,10 @@ let executeDataInstruction (state:State) = function
     | SingleMemoryInstruction (operation, operands) -> state
     | MultipleMemoryInstruction (operation, operands) -> state
     | LoadAddressInstruction (operation, operands) -> state
+
+let rec executeALUInstructionList (state: State) instructionsList =
+    match instructionsList with
+    | h :: t -> executeALUInstructionList (executeALUInstruction state h) t
+    | _ -> state
+
+
