@@ -209,3 +209,11 @@ let ParseLine (line : string) : ALUInstruction Option=
 
     | _ -> failwithf "Instruction not implemented"
 
+   
+let ParseText (lines: string) = 
+    let splitter (s:string) =
+        s.Split([|'\n';'\r';|], System.StringSplitOptions.RemoveEmptyEntries)
+    splitter lines
+        |> Array.toList
+        |> List.map ParseLine
+ 
