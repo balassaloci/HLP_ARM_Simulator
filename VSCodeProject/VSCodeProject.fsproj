@@ -47,6 +47,9 @@
     <Compile Include="Instruction.fs" />
     <Compile Include="Parser.fs" />
     <Compile Include="Functions.fs" />
+    <Compile Include="CommonOperandFunctions.fs" />
+    <Compile Include="ALU.fs" />
+    <Compile Include="Memory.fs" />
     <Compile Include="Execution.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
