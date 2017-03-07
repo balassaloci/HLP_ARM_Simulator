@@ -2,8 +2,8 @@ module Parser
 open Machine
 open Instruction
 
-let ParseLine (line : string) : Instruction Option= 
-    let splitter (s:string) = s.Split([|' '; '\n'; '\n'; '\r'; '\f'|], 
+let ParseLine (line : string) : ALUInstruction Option= 
+    let splitter (s:string) = s.Split([|','; ' '; '\n'; '\n'; '\r'; '\f'|], 
                                 System.StringSplitOptions.RemoveEmptyEntries)
     
     let (|Prefix|_|) (p:string) (s:string) =
@@ -209,3 +209,11 @@ let ParseLine (line : string) : Instruction Option=
 
     | _ -> failwithf "Instruction not implemented"
 
+   
+let ParseText (lines: string) = 
+    let splitter (s:string) =
+        s.Split([|'\n';'\r';|], System.StringSplitOptions.RemoveEmptyEntries)
+    splitter lines
+        |> Array.toList
+        |> List.map ParseLine
+ 
