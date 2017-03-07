@@ -26,7 +26,14 @@ let main argv =
     let instruction = ArithmeticInstruction (operation1, (R0, R1, MixedOp <| Literal 55))
     let newState = executeInstruction state instruction
 
-    printf "Registers: %A\n" <| State.registerValue R0 newState
+    // printf "Registers: %A\n" <| State.registerValue R0 newState
+
+    let k = Parser.ParseLine("CMN R0 R1")
+
+    printf "Completed %A" k
+
     System.Console.ReadKey() |> ignore
+
+
     0
 
