@@ -10,41 +10,61 @@ open Fable.Arch.Html
 
 open Fable.Core.JsInterop
 open App.CodeMirrorInterface
+//open CodeMirrorImports
 
-// Model
-type Register = 
-    {
-        Name: string
-        IntVal: int
-    }
+open Machine
+open Parser
+open Execution
+// union name
+open Microsoft.FSharp.Reflection
 
-type Model = 
+
+type Editor = | Uninit
+              | CM of CodeMirrorImports.CodeMirrorEditor
+
+type Model =
     {
-        Text: string
-        Registers: Register list
+        MachineState: State
+        CM : string
+        Code : Editor
     }
 
 type Actions =
+    | InitialiseCodeMirror
     | ChangeInput of string
     | Run
 
 
 
 // Update
-let processOneLine model =
-    let addOneToFirstRegister =
-        model.Registers
-        |> List.map (fun r -> 
-                            let inc = r.IntVal + 1
-                            if r.Name = "r0" then {r with IntVal = inc} else r)
+let processSimpleAddition model =
+    State.updateRegister R0 5 model.MachineState
 
-    {model with Registers = addOneToFirstRegister }
+
 
 let update model msg =
+    
+    let initEditor =
+        let editId = getById<Fable.Import.Browser.HTMLTextAreaElement> "code"
+        let cmEditor = App.CodeMirrorImports.CodeMirror.fromTextArea(editId, initOptions)
+        
+        CM cmEditor
+
+    let optionGetter = function
+        | Some x -> x
+        | None -> failwithf "no!"
+
     let model' =
         match msg with
-        | ChangeInput str -> {model with Text = str}
-        | Run -> processOneLine model
+        | InitialiseCodeMirror when model.Code = Uninit -> printfn "updatemodelcall"; { model with Code = initEditor }
+        | Run -> match model.Code with
+                 | CM c -> printfn "TEXTIS: %s" (c.getValue ());
+                           let processOneLine =
+                                c.getValue() |> ParseLine |> optionGetter |> executeInstruction model.MachineState
+                           {model with MachineState = processOneLine model.MachineState}
+                 | _ -> printfn "uninit"; model
+        | ChangeInput x -> printfn "UPDATETEXT %s" x; {model with CM = x}
+        | _ -> failwithf "not implemented"
     let jsCall =
         match msg with
         | _ -> []
@@ -55,12 +75,23 @@ let update model msg =
 // View
 let inline onInput x = onEvent "oninput" (fun e -> x (unbox e?target?value)) 
 
+///Returns the case name of the object with union type 'ty.
+let GetUnionCaseName (x:RegisterIndex) = 
+    match FSharpValue.GetUnionFields(x, typeof<RegisterIndex>) with
+    | case, _ -> case.Name  
+
 let listRegister reg =
+    let getRegisterNameOrVal b = function
+        | (k, _) when b -> GetUnionCaseName(k)
+        | (_, v) ->  v.ToString()
+    let getRegisterName = getRegisterNameOrVal true reg
+    let getRegisterVal = getRegisterNameOrVal false reg
+
     li [attribute "class" "list-group-item"]
        [
-            text (reg.IntVal.ToString())
+            text (getRegisterName)
             span [attribute "class" "badge"]
-                 [text reg.Name]
+                 [text getRegisterVal]
        ]
 
 let view model =
@@ -73,13 +104,13 @@ let view model =
                             textarea [attribute "name" "code"
                                       attribute "id" "code"
                                       attribute "style" "display: none;"]
-                                     [text "abc //comment"]
+                                     [text "ADD R0 R1 R1"]
                         ]
                     div [attribute "class" "col-md-4"]
                         [
 
                             ul [attribute "class" "list-group"]
-                               (model.Registers |> List.map listRegister)
+                               (State.getAllRegisters model.MachineState |> List.map listRegister)
                             a [attribute "class" "btn btn-default"
                                attribute "href" "#"
                                attribute "role" "button"
@@ -93,26 +124,24 @@ let view model =
 
 // Main function
 // Starts MVC first and then initialises CodeMirror
-// TODO: Integration of CodeMirror into model
+
+let initProducer push =
+    printfn "init"
+    push(InitialiseCodeMirror)
+
 let main () =
 
     printfn "Starting..."
+    let initMachineState = State.makeInitialState()
 
-    let initReg = [{Name = "r0"; IntVal = 0}; {Name = "r1"; IntVal = 0}; {Name = "pc"; IntVal = 0}]
-    let initModel = {Text = "a";  Registers = initReg}
-    
+    printfn "Creating state"
+    let initModel = {MachineState = initMachineState; CM = ""; Code = Uninit}
+
     createApp initModel view update Virtualdom.createRender
     |> withStartNodeSelector "#test"
+    |> withProducer initProducer
+//    |> withSubscriber (fun x -> Fable.Import.Browser.console.log("Event received: ", x))
     |> start
-
-    
-    let editId = getById<Fable.Import.Browser.HTMLTextAreaElement> "code"
-    printfn "Creating editor"
-    let cmEditor = App.CodeMirrorImports.CodeMirror.fromTextArea(editId, initOptions)
-    printfn "Setting editor value"
-    cmEditor.setValue " abc def *** //comment"
-    printfn "Line tokens: %A" (cmEditor.getLineTokens 0)
-    printfn "Main Code finished"
     
 main()
 
