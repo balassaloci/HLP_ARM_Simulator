@@ -19,13 +19,13 @@ open Memory
 
 let executeALUInstruction (state:State) = function 
     | ArithmeticInstruction (operation, operands) ->
-        executeArithmetic operation operands
+        executeArithmetic operation operands state
     | ShiftInstruction (operation, operands) ->
-        executeShift operation operands
+        executeShift operation operands state
     | CompareInstruction (operation, operands) ->
-        executeCompare operation operands
+        executeCompare operation operands state
     | BitwiseInstruction (operation, operands) ->
-        executeBitwise operation operands
+        executeBitwise operation operands state
 
 let executeDataInstruction (state:State) = function
     | MoveInstruction (operation, operands) -> state
