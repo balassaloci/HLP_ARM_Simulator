@@ -19,14 +19,14 @@ let rotateRight op1 op2 = leftshift op1 op2
 
 let add a b = a + b
 let addCarry a b =
-    let c = if statusRegister.C then 1 else 0
-    // let c = 0
+    // let c = if statusRegister.C then 1 else 0
+    let c = 0
     add a c |> add b
 
 let subtract a b = a - b
 let subtractCarry a b =
-    let c = if statusRegister.C then 0 else 1
-    // let c = 0
+    // let c = if statusRegister.C then 0 else 1
+    let c = 0
     subtract a c |> subtract b
 
 let reverseSubtract a b =
