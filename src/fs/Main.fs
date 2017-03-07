@@ -47,7 +47,8 @@ let update model msg =
     let initEditor =
         let editId = getById<Fable.Import.Browser.HTMLTextAreaElement> "code"
         let cmEditor = App.CodeMirrorImports.CodeMirror.fromTextArea(editId, initOptions)
-        
+        let options = App.CodeMirrorImports.CodeMirror
+
         CM cmEditor
 
     let optionGetter = function
@@ -60,8 +61,8 @@ let update model msg =
         | Run -> match model.Code with
                  | CM c -> printfn "TEXTIS: %s" (c.getValue ());
                            let processOneLine =
-                                c.getValue() |> ParseLine |> optionGetter |> executeInstruction model.MachineState
-                           {model with MachineState = processOneLine model.MachineState}
+                                c.getValue() |> ParseText |> List.map optionGetter |> executeALUInstructionList model.MachineState
+                           {model with MachineState = processOneLine}
                  | _ -> printfn "uninit"; model
         | ChangeInput x -> printfn "UPDATETEXT %s" x; {model with CM = x}
         | _ -> failwithf "not implemented"

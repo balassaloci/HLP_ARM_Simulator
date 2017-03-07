@@ -92,14 +92,21 @@ let (|EatLine|_|) (stream:CodeMirrorStream) =
 /// See CodeMirror documentation for further details
 let tokFunction  (stream:CodeMirrorStream)  (state:obj) =
     let ret = 
+        // match stream with 
+        // | EatSpace _ -> printfn "space 2"; "var2"
+        // | EatMatch "^[a-zA-Z][a-zA-Z0-9]*" _ ->printfn "sym 3"; "atom"
+        // | EatMatch "^//" (EatLine x) -> printfn "line 4";"comment"
+        // | EatMatch "^[0-9][0-9]*" _ -> printfn "num 5";"number"
+        // | EatMatch "^." s -> printfn "op 6";  "keyword"
+        // | _ -> printfn "? 7"; null
         match stream with 
-        | EatSpace _ -> printfn "space 2"; "var2"
-        | EatMatch "^[a-zA-Z][a-zA-Z0-9]*" _ ->printfn "sym 3"; "atom"
-        | EatMatch "^//" (EatLine x) -> printfn "line 4";"comment"
-        | EatMatch "^[0-9][0-9]*" _ -> printfn "num 5";"number"
-        | EatMatch "^." s -> printfn "op 6";  "keyword"
-        | _ -> printfn "? 7"; null
-    printfn "Token: <%s '%s'> pos=%f" ret (stream.current()) stream.pos
+        | EatSpace _ -> "var2"
+        | EatMatch "^[a-zA-Z][a-zA-Z0-9]*" _ -> "atom"
+        | EatMatch "^//" (EatLine x) -> "comment"
+        | EatMatch "^[0-9][0-9]*" _ -> "number"
+        | EatMatch "^." s -> "keyword"
+        | _ -> null
+    //printfn "Token: <%s '%s'> pos=%f" ret (stream.current()) stream.pos
     ret
 
 /// Sample definition, with trivial state `0` which cannot be mutated
