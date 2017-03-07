@@ -19,10 +19,10 @@ let execOperandValue op (state:State) =
         let shiftOp = getShiftFunction shift
         shiftOp (State.registerValue op2 state) (mixedOperandValue expr state)
 
-let conditionHolds = function
+let conditionHolds state = function
     | AL -> true
-    | EQ -> statusRegister.Z
-    | NE -> statusRegister.Z
-    | CS | HS -> statusRegister.C
+    | EQ -> State.getZ state// statusRegister.Z
+    | NE -> State.getZ state
+    | CS | HS -> State.getC state
     | _ -> false
 
