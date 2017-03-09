@@ -196,6 +196,7 @@ and [<AllowNullLiteral>] CodeMirrorType =
     abstract defineMode: name: string * func: obj -> CodeMirrorMode
     abstract defineMIME: mime: string * mode: string -> obj
     abstract connect: target: EventTarget * ``event``: string * func: Function -> obj
+    abstract save: unit -> unit
 
 
 /// Object from which CodeMirror editor components can be created
