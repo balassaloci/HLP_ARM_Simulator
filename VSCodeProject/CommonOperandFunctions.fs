@@ -19,10 +19,16 @@ let execOperandValue op (state:State) =
         let shiftOp = getShiftFunction shift
         shiftOp (State.registerValue op2 state) (mixedOperandValue expr state)
 
-let conditionHolds state = function
-    | AL -> true
-    | EQ -> State.getZ state// statusRegister.Z
-    | NE -> State.getZ state
-    | CS | HS -> State.getC state
-    | _ -> false
+let conditionHolds state cond= 
+    let systemValue = match cond with
+                      | AL -> BitValue true
+                      | EQ -> State.statusBitValue Z state
+                      | EQ -> State.statusBitValue Z state// statusRegister.Z
+                      | NE -> State.statusBitValue Z state
+                      | CS | HS -> State.statusBitValue C state
+                      | _ -> failwithf ""
+    
+    match systemValue with
+    | BitValue b -> b
+    | _ -> failwithf "conditionHolds error: systemvalue returned was not bool"
 
