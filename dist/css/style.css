@@ -2,9 +2,25 @@ body {
   padding-top: 50px;
 }
 .starter-template {
-  padding: 40px 15px;
+  padding-top: 25px;
 }
 
 .CodeMirror {
-  border: 2px solid;
+  border: 1px solid #ddd;
+}
+
+.list-group-item {
+  padding: 8px 15px !important;
+}
+
+.nav li {
+  margin-right: 15px;
+}
+
+.alert-warning {
+  margin: 0px 15px;
+}
+
+.panel-group {
+  margin-top: 15px;
 }

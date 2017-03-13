@@ -28,7 +28,8 @@ type Model =
 
 /// actions that are called from elments in the view
 type Actions =
-    | RunString of string
+    | Run of string
+    | RunOne of string
 
 /// Global Codemirror
 /// initialise codemirror as global variable, but assign it to a div
@@ -57,9 +58,9 @@ let update model msg =
 
     let model' =
         match msg with
-        | RunString s -> let processOneLine =
-                            s |> ParseText |> List.map optionGetter |> executeALUInstructionList model.MachineState
-                         {model with MachineState = processOneLine}
+        | Run s | RunOne s-> let processOneLine =
+                                s |> ParseText |> List.map optionGetter |> executeALUInstructionList model.MachineState
+                             {model with MachineState = processOneLine}
     let jsCall =
         match msg with
         | _ -> []
@@ -73,9 +74,7 @@ let update model msg =
 *)
 //let inline onInput x = onEvent "oninput" (fun e -> x (unbox e?target?value)) 
 
-let fetchAndRun x = 
-    // get editorValue
-    RunString (cmEditor().getValue())
+
 
 ///Returns the case name of the object with union type 'ty.
 
@@ -87,9 +86,9 @@ let listRegister machineState =
     let oneRegister (name, value) =
         li [attribute "class" "list-group-item"]
            [
-                text name
+                text value
                 span [attribute "class" "badge"]
-                     [text value]
+                     [text name]
            ]
 
     // custom sort function to sort registers right
@@ -106,6 +105,25 @@ let listRegister machineState =
     |> List.sortBy sortRegisters
     |> List.map oneRegister
 
+let fetchAndRun x = 
+    // get editorValue
+    Run (cmEditor().getValue())
+
+let fetchAndRunOne x = 
+    // get editorValue
+    RunOne (cmEditor().getValue())
+
+let buttonOnClick label func =
+    li  []
+        [
+            p [attribute "class" "navbar-btn"]
+                [
+                a [ attribute "type" "button"
+                    attribute "class" "btn btn-default"
+                    onMouseClick func]
+                    [ text label] 
+                ]
+        ]
 
 let header model =
     nav [attribute "class" "navbar navbar-inverse navbar-fixed-top"]
@@ -138,16 +156,8 @@ let header model =
                         [
                             ul  [attribute "class" "nav navbar-nav navbar-right"]
                                 [
-                                    li  []
-                                        [
-                                            p [attribute "class" "navbar-btn"]
-                                              [
-                                                a [ attribute "type" "button"
-                                                    attribute "class" "btn btn-default"
-                                                    onMouseClick fetchAndRun]
-                                                    [ text "Run"] 
-                                              ]
-                                        ]
+                                    (buttonOnClick "Run All" fetchAndRun)
+                                    (buttonOnClick "Run Step" fetchAndRunOne)
                                 ]
                         ]
 
@@ -155,17 +165,96 @@ let header model =
         ]
 
 
+let memorytable =
+    table [attribute "class" "table"]
+          [
+              thead []
+                    [
+                        tr []
+                           [
+                               th [][text "Word Address"]
+                               th [][text "Byte 3"]
+                               th [][text "Byte 2"]
+                               th [][text "Byte 1"]
+                               th [][text "Byte 0"]
+                               th [][text "Word Value"]
+                           ]
+                    ]
+              tbody []
+                    [
+                        tr []
+                           [
+                               th [attribute "scope" "row"] [text "0x100"]
+                               td [][text "0x0"]
+                               td [][text "0x0"]
+                               td [][text "0x0"]
+                               td [][text "0x0"]
+                               td [][text "0"]
+                           ]
+                    ]
+          ]
+
+let memory =
+
+    div [attribute "class" "panel-group"
+         attribute "id" "accordion"
+         attribute "role" "tablist"
+         attribute "aria-multiselectable" "true"]
+        [
+            div [attribute "class" "panel panel-default"
+                 attribute "data-toggle" "collapse"
+                 attribute "data-target" "#collapseOne"]
+                [
+                    div [attribute "class" "panel-heading"
+                         attribute "role" "tab"
+                         attribute "id" "headingOne"]
+                        [
+                            h4 [attribute "class" "panel-title"]
+                               [text "Memory Content"]
+
+                        ]
+                    div [attribute "class" "panel-collapse collapse"
+                         attribute "id" "collapseOne"
+                         attribute "role" "tabpanel" 
+                         attribute "aria-labelledby" "headingOne"]
+                        [
+                            div [attribute "class" "panel-body"]
+                                [ 
+                                   text "TODO ..."
+                                   (memorytable)
+                                ]
+                        ]
+                ]
+        ]
+
+let message msg =
+    div [attribute "class" "alert alert-warning alert-dismissible"
+         attribute "role" "alert"]
+        [
+            button [attribute "type" "button"
+                    attribute "class" "close"
+                    attribute "data-dismiss" "alert"
+                    attribute "aria-label" "Close"]
+                   [
+                       span [attribute "aria-hidden" "true"]
+                            [text "x"]
+                   ]
+            strong []
+                   [text msg]
+        ]
 let body model =
     div [attribute "class" "container starter-template"]
         [
             div [attribute "class" "row"]
                 [
+                    (message "alert")
                     div [attribute "class" "col-md-8"]
                         [
                             textarea [attribute "name" "code"
                                       attribute "id" "code"
                                       attribute "style" "display: none;"]
                                      [text ""]
+                            (memory)
                         ]
                     div [attribute "class" "col-md-4"]
                         [
@@ -175,10 +264,16 @@ let body model =
                 ]
         ]
 
+// <div class="alert alert-warning alert-dismissible" role="alert">
+//   <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+//   <strong>Warning!</strong> Better check yourself, you're not looking too good.
+// </div>
+
+
 
 let view model =
-    section [attribute "class" "app"]
-            ((header model) :: [(body model)])
+    section [attribute "class" "app-wrapper"]
+            ([(header model); (body model)])
 // Main function
 // Starts MVC first and then initialises CodeMirror
 
@@ -192,13 +287,14 @@ let main () =
     let initModel = {MachineState = initMachineState}
 
     createApp initModel view update Virtualdom.createRender
-    |> withStartNodeSelector "#test"
+    |> withStartNodeSelector "#app"
 //    |> withSubscriber (fun x -> Fable.Import.Browser.console.log("Event received: ", x))
     |> start
 
     let initEditor =
         let editId = getById<Fable.Import.Browser.HTMLTextAreaElement> "code"
-        App.CodeMirrorImports.CodeMirror.fromTextArea(editId, initOptions)
+        let options = [App.CodeMirrorImports.LineNumbers]
+        App.CodeMirrorImports.CodeMirror.fromTextArea(editId, options)
 
     match editorWrapper with
     | Uninit -> editorWrapper <- CM initEditor
