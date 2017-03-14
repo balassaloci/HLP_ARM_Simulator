@@ -126,6 +126,9 @@ and [<KeyValueList>] CodeMirrorModeNames =
 
 and CodeMirrorMode = CodeMirrorModeNames list
 
+and [<AllowNullLiteral>] Doc =
+    abstract addLineClass: line: int * where: string * cl: string -> CodeMirrorLineHandle
+
 and [<AllowNullLiteral>] CodeMirrorEditor =
     abstract getLineTokens: line: int -> Array<CodeMirrorToken>
     abstract getValue: unit -> string
@@ -183,6 +186,7 @@ and [<AllowNullLiteral>] CodeMirrorEditor =
     abstract getScrollerElement: unit -> HTMLElement
     abstract getGutterElement: unit -> HTMLElement
     abstract getStateAfter: line: obj -> obj
+    abstract getDoc: unit -> Doc
 
 and CodeMirrorOptions = CodeMirrorOptionNames list
    

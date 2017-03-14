@@ -18,17 +18,20 @@ open Execution
 // union name
 open Microsoft.FSharp.Reflection
 
-
+type Buttonstate = BRunAll | BRunStep | BReset | BResetUnsuccessful
 
 /// wrapped in model since maybe more elements will follow
 type Model =
     {
         MachineState: State
+        Buttons: Buttonstate list
     }
 
 /// actions that are called from elments in the view
 type Actions =
+    | HighlightLine of int
     | Run of string
+    | Reset
     | RunOne of string
 
 /// Global Codemirror
@@ -50,6 +53,9 @@ let cmEditor () =
     -> Called every time the view throws an update action
     -> Returns new model as well as jsCalls that will be executed
 *)
+
+// TODO: ability to reset machinestate
+//       error handling!!
 let update model msg =
 
     let optionGetter = function
@@ -58,9 +64,16 @@ let update model msg =
 
     let model' =
         match msg with
-        | Run s | RunOne s-> let processOneLine =
+        | Run s | RunOne s -> let processOneLine =
                                 s |> ParseText |> List.map optionGetter |> executeALUInstructionList model.MachineState
-                             {model with MachineState = processOneLine}
+                              {model with MachineState = processOneLine}
+        | Reset -> let defaultButtonState = [BRunAll; BRunStep];
+                   {model with Buttons = defaultButtonState}        // TODO: reset machine state
+        | HighlightLine line ->  let doc = cmEditor().getDoc()
+                                 doc.addLineClass(line,"background", "line-bg") |> ignore
+                                 model // return unaltered model, as this is only a sideeffect
+                                       // can probably be done in jsCall below TODO
+                             
     let jsCall =
         match msg with
         | _ -> []
@@ -85,11 +98,11 @@ let listRegister machineState =
 
     let oneRegister (name, value) =
         li [attribute "class" "list-group-item"]
-           [
+            [
                 text value
                 span [attribute "class" "badge"]
-                     [text name]
-           ]
+                        [text name]
+            ]
 
     // custom sort function to sort registers right
     // if other registers are present, order does not matter
@@ -108,22 +121,28 @@ let listRegister machineState =
 let fetchAndRun x = 
     // get editorValue
     Run (cmEditor().getValue())
-
 let fetchAndRunOne x = 
     // get editorValue
     RunOne (cmEditor().getValue())
 
-let buttonOnClick label func =
+let buttonOnClick label cl func =
     li  []
         [
             p [attribute "class" "navbar-btn"]
                 [
                 a [ attribute "type" "button"
-                    attribute "class" "btn btn-default"
+                    attribute "class" ("btn btn-" + cl)
                     onMouseClick func]
                     [ text label] 
                 ]
         ]
+
+
+let runButton = function
+    | BRunAll -> buttonOnClick "Run" "default" fetchAndRun
+    | BRunStep -> buttonOnClick "Run Step" "default" fetchAndRunOne
+    | BReset -> buttonOnClick "Reset" "success" (fun x -> Reset)
+    | BResetUnsuccessful -> buttonOnClick "Reset" "danger" (fun x -> Reset)
 
 let header model =
     nav [attribute "class" "navbar navbar-inverse navbar-fixed-top"]
@@ -155,10 +174,7 @@ let header model =
                          attribute "id" "bs-example-navbar-collapse-1"]
                         [
                             ul  [attribute "class" "nav navbar-nav navbar-right"]
-                                [
-                                    (buttonOnClick "Run All" fetchAndRun)
-                                    (buttonOnClick "Run Step" fetchAndRunOne)
-                                ]
+                                (model.Buttons |> List.map runButton)
                         ]
 
                 ]
@@ -227,6 +243,32 @@ let memory =
                 ]
         ]
 
+let oneRegisterHorizontalWrapper (name, value) =
+    li [attribute "class" "col-cprs"]
+        [
+            text value
+            span [attribute "class" "badge"]
+                 [text name]
+        ]
+
+let cprsView =
+    ul [attribute "class" "list-group row-cprs"]
+        [
+            oneRegisterHorizontalWrapper("C", "1");
+            oneRegisterHorizontalWrapper("P", "1");
+            oneRegisterHorizontalWrapper("R", "1");
+            oneRegisterHorizontalWrapper("S", "1");                        
+        ]
+// <div class="row">
+//   <div class="col-md-6">
+//     <div class="list-group-item">0<span class="badge">R0</span>
+//   </div>
+// </div>
+//     <div class="col-md-6">
+//         <div class="list-group-item">0<span class="badge">R0</span></div>
+//     </div>
+// </div>
+
 let message msg =
     div [attribute "class" "alert alert-warning alert-dismissible"
          attribute "role" "alert"]
@@ -260,6 +302,7 @@ let body model =
                         [
                             ul [attribute "class" "list-group"]
                                (listRegister model.MachineState)
+                            cprsView 
                         ]
                 ]
         ]
@@ -284,7 +327,8 @@ let main () =
     let initMachineState = State.makeInitialState()
 
     printfn "Creating state"
-    let initModel = {MachineState = initMachineState}
+    let initButtons = [BRunAll; BRunStep]
+    let initModel = {MachineState = initMachineState; Buttons = initButtons}
 
     createApp initModel view update Virtualdom.createRender
     |> withStartNodeSelector "#app"
@@ -300,8 +344,24 @@ let main () =
     | Uninit -> editorWrapper <- CM initEditor
     | _ -> failwithf "not possible"
 
-    
-    cmEditor().setValue "ADD R0 R1 R1"
+    cmEditor().setValue "ADD R0, R0, R1"
+//     cmEditor().setValue "        MOV R0, #1024          ; R0 is input, decreases by factors of 10
+//         MOV R1, #0             ; R1 is sum of digits
+//         MOV R2, #0x19000000    ; R2 is constantly 0x1999999A
+//         ORR R2, R2, #0x00990000
+//         ORR R2, R2, #0x00009900
+//         ORR R2, R2, #0x0000009A
+//         MOV R3, #10            ; R3 is constantly 10
+// loop    UMULL R4, R5, R0, R2   ; R5 is R0 / 10
+//         UMULL R4, R6, R5, R3   ; R4 is now 10 * (R0 / 10)
+//         SUB R4, R0, R4         ; R5 is now one's digit of R0
+//         ADD R1, R1, R4         ; add it into R1
+//         MOVS R0, R5
+//         BNE loop"
+        
+    // let doc = cmEditor().getDoc()
+    // printf "%A" (doc.addLineClass(0,"background", "line-bg"))
+    // printf "%A" (cmEditor().setLineClass (1.0, "fg", "line-bg"))
     
 main()
 
