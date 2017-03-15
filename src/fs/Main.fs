@@ -144,6 +144,28 @@ let runButton = function
     | BReset -> buttonOnClick "Reset" "success" (fun x -> Reset)
     | BResetUnsuccessful -> buttonOnClick "Reset" "danger" (fun x -> Reset)
 
+
+let message msg =
+    div [attribute "class" "alert alert-warning alert-dismissible alert-head"
+         attribute "role" "alert"]
+        //  Popover by activating the following and then message.popover('show')
+        //  attribute "data-toggle" "popover"
+        //  attribute "data-trigger" "focus" 
+        //  attribute "data-placement" "bottom" 
+        //  attribute "data-content" "Vivamus sagittis lacus vel augue laoreet rutrum faucibus."]
+        [
+            button [attribute "type" "button"
+                    attribute "class" "close"
+                    attribute "data-dismiss" "alert"
+                    attribute "aria-label" "Close"]
+                   [
+                       span [attribute "aria-hidden" "true"]
+                            [text "x"]
+                   ]
+            strong []
+                   [text msg]
+        ]
+
 let header model =
     nav [attribute "class" "navbar navbar-inverse navbar-fixed-top"]
         [
@@ -175,6 +197,7 @@ let header model =
                         [
                             ul  [attribute "class" "nav navbar-nav navbar-right"]
                                 (model.Buttons |> List.map runButton)
+                            (message "alert")
                         ]
 
                 ]
@@ -268,28 +291,11 @@ let cprsView =
 //         <div class="list-group-item">0<span class="badge">R0</span></div>
 //     </div>
 // </div>
-
-let message msg =
-    div [attribute "class" "alert alert-warning alert-dismissible"
-         attribute "role" "alert"]
-        [
-            button [attribute "type" "button"
-                    attribute "class" "close"
-                    attribute "data-dismiss" "alert"
-                    attribute "aria-label" "Close"]
-                   [
-                       span [attribute "aria-hidden" "true"]
-                            [text "x"]
-                   ]
-            strong []
-                   [text msg]
-        ]
 let body model =
     div [attribute "class" "container starter-template"]
         [
             div [attribute "class" "row"]
                 [
-                    (message "alert")
                     div [attribute "class" "col-md-8"]
                         [
                             textarea [attribute "name" "code"

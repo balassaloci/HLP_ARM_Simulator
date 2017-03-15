@@ -18,8 +18,28 @@ body {
 }
 
 .alert-warning {
-  margin: 0px 15px;
+  /*margin: 0px 15px;*/
+  width: 300px;
+  margin: auto;
+  margin-top: 5px;
+  margin-bottom: 0px !important;
+  height: 40px;
+  line-height:40px;
+  padding:0px 40px 0px 15px !important;
 }
+
+.alert-warning span {
+  line-height: 40px;
+}
+/*
+.alert-head {
+  width: 300px;
+  margin: auto;
+
+  height: 30px;
+  line-height:30px;
+  padding:0px 15px;
+}*/
 
 .panel-group {
   margin-top: 15px;
@@ -64,3 +84,4 @@ body {
   float: right;
   margin-top: 2px;
 }
+
