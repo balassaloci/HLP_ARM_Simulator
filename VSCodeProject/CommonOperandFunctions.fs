@@ -1,7 +1,7 @@
 module CommonOperandFunctions
 
 open Machine
-open Instruction
+open NewInstruction
 open Functions
 
 let registerOperandValue op state =
