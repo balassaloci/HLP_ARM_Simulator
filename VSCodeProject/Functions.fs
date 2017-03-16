@@ -1,7 +1,7 @@
 module Functions
 
 open Machine
-open NewInstruction
+open InstructionsCommonTypes
 
 let bitwiseAnd op1 op2 =
     op1 &&& op2

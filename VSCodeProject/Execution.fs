@@ -1,41 +1,20 @@
 module Execution
 
-open Machine
-open Instruction
-// open Functions
-open ALU
-open Memory
+// open NewALU
+// open Memory
+// open Branch
 
-// let checkCarry (add:bool) (result:int) =
-//     if add && result >= (1<<<32) then
-//         1
-//     elif not <| add && result >= 0 then
-//         0
-//     else
-//         0
+type Instruction =
+    private | ALUInst of ALU.ALUInstruction
+            | MemInst of Memory.MemoryInstruction
+            | BrInst of Branch.BranchInstruction
 
-// let checkOverflow () =
-//     0
+module Instruction =
+    let constructSample () =
+        ALUInst <| ALU.ALUInstruction.constructSample ()
 
-let executeALUInstruction (state:State) = function 
-    | ArithmeticInstruction (operation, operands) ->
-        executeArithmetic operation operands state
-    | ShiftInstruction (operation, operands) ->
-        executeShift operation operands state
-    | CompareInstruction (operation, operands) ->
-        executeCompare operation operands state
-    | BitwiseInstruction (operation, operands) ->
-        executeBitwise operation operands state
-
-let executeDataInstruction (state:State) = function
-    | MoveInstruction (operation, operands) -> state
-    | SingleMemoryInstruction (operation, operands) -> state
-    | MultipleMemoryInstruction (operation, operands) -> state
-    | LoadAddressInstruction (operation, operands) -> state
-
-let rec executeALUInstructionList (state: State) instructionsList =
-    match instructionsList with
-    | h :: t -> executeALUInstructionList (executeALUInstruction state h) t
-    | _ -> state
-
-
+    let execute state instruction =
+        match instruction with
+        | ALUInst ai -> ALU.ALUInstruction.execute state ai
+        | MemInst mi -> Memory.MemoryInstruction.execute state mi
+        | BrInst bi -> Branch.BranchInstruction.execute state bi

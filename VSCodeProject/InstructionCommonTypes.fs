@@ -1,4 +1,4 @@
-module NewInstruction
+module InstructionsCommonTypes
 
 open Machine
 // open NewALU

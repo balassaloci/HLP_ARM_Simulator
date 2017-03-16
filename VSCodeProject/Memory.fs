@@ -1,10 +1,20 @@
 module Memory
 
 open Machine
-open Instruction
+open InstructionsCommonTypes
 open CommonOperandFunctions
 
-let executeMove () = None
-let executeSingleRegisterMemoryInstruction () = None
-let executeMultipleRegisterMemoryInstruction () = None
-let executeLoadAddressInstruction () = None
+type MemoryInstruction =
+    private {
+        opcode: string
+        operands: string list
+    }
+
+module MemoryInstruction =
+    let private executeMove () = None
+    let private executeSingleRegisterMemoryInstruction () = None
+    let private executeMultipleRegisterMemoryInstruction () = None
+    let private executeLoadAddressInstruction () = None
+
+    let execute (state:State) (instr:MemoryInstruction) =
+        failwithf "Not implemented"
