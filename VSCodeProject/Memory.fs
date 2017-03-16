@@ -10,6 +10,8 @@ type MemoryInstruction =
         operands: string list
     }
 
+[<RequireQualifiedAccess; 
+CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
 module MemoryInstruction =
     let private executeMove () = None
     let private executeSingleRegisterMemoryInstruction () = None

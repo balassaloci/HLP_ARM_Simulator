@@ -1,14 +1,15 @@
 module Branch
 
 open Machine
-open NewInstruction
+open InstructionsCommonTypes
 
-type BranchInstruction =
-    private {
-        opcode: string
+type BranchInstruction = {
+        opcode: string;
         operands: string
     }
 
+[<RequireQualifiedAccess; 
+CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
 module BranchInstruction =
     let private branchLabel () = failwithf "Not implemented"
 

@@ -27,7 +27,9 @@ let main argv =
     // printf "Completed %A" k
     let instr = Execution.Instruction.constructSample ()
     let newState = Execution.Instruction.execute state instr
-    State.registerValue R0 newState
+    printf "%A " <| State.registerValue R0 newState
+    printf "%A " <| State.registerValue R1 newState
+    printf "%A" <| State.registerValue R2 newState
     System.Console.ReadKey() |> ignore
     // let stateTransform = "abc" |> Parser.ParseLine |> Option.get |> executeALUInstruction state
 

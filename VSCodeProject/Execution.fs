@@ -1,6 +1,6 @@
 module Execution
 
-// open NewALU
+// open ALU
 // open Memory
 // open Branch
 
@@ -9,6 +9,8 @@ type Instruction =
             | MemInst of Memory.MemoryInstruction
             | BrInst of Branch.BranchInstruction
 
+[<RequireQualifiedAccess; 
+CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
 module Instruction =
     let constructSample () =
         ALUInst <| ALU.ALUInstruction.constructSample ()

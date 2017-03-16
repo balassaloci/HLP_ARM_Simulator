@@ -32,12 +32,14 @@ type ALUInstruction =
         | CInst of CompareInstr
         | BInst of BitwiseInstr
 
+[<RequireQualifiedAccess; 
+CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
 module ALUInstruction =
     let parse: string -> ALUInstruction =
         failwithf "Not implemented"
     
     let constructSample () =
-        let opcode = {opcode=ADD; setBit=IgnoreStatus; condSuffix=NE}
+        let opcode = {opcode=ADD; setBit=IgnoreStatus; condSuffix=AL}
         let op2' = MixedOp <| Literal 72
         let operands:ArithmeticOperands = {dest=R0; op1=R1; op2=op2'}
         AInst {ArithmeticInstr.operation=opcode; ArithmeticInstr.operands=operands}
