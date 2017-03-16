@@ -69,13 +69,13 @@ let update model msg =
                               {model with MachineState = processOneLine}
         | Reset -> let defaultButtonState = [BRunAll; BRunStep];
                    {model with Buttons = defaultButtonState}        // TODO: reset machine state
-        | HighlightLine line ->  let doc = cmEditor().getDoc()
-                                 doc.addLineClass(line,"background", "line-bg") |> ignore
-                                 model // return unaltered model, as this is only a sideeffect
-                                       // can probably be done in jsCall below TODO
-                             
+        | HighlightLine line ->  model 
+    
+    // handle sideeffects separately
     let jsCall =
         match msg with
+        | HighlightLine line -> let doc = cmEditor().getDoc()
+                                toActionList <| fun x -> (doc.addLineClass(line,"background", "line-bg") |> ignore)
         | _ -> []
 
     model', jsCall
@@ -89,42 +89,7 @@ let update model msg =
 
 
 
-///Returns the case name of the object with union type 'ty.
-
-let listRegister machineState =
-    let getUnionCaseName (x:RegisterIndex) = 
-        match FSharpValue.GetUnionFields(x, typeof<RegisterIndex>) with
-        | case, _ -> case.Name  
-
-    let oneRegister (name, value) =
-        li [attribute "class" "list-group-item"]
-            [
-                text value
-                span [attribute "class" "badge"]
-                        [text name]
-            ]
-
-    // custom sort function to sort registers right
-    // if other registers are present, order does not matter
-    let sortRegisters ((name: string), _) =
-        match name with
-        | str when str.StartsWith("R") ->  str.Substring(1) |> int
-        | _ -> 100
-
-    // get the registers, and extract name and value in sorted fashion
-    State.getRegisters machineState
-    |> Map.toList 
-    |> List.map( fun (ri, v) -> getUnionCaseName(ri), v.ToString() )
-    |> List.sortBy sortRegisters
-    |> List.map oneRegister
-
-let fetchAndRun x = 
-    // get editorValue
-    Run (cmEditor().getValue())
-let fetchAndRunOne x = 
-    // get editorValue
-    RunOne (cmEditor().getValue())
-
+/// creates DOM for Buttons in Nav
 let buttonOnClick label cl func =
     li  []
         [
@@ -137,6 +102,13 @@ let buttonOnClick label cl func =
                 ]
         ]
 
+let fetchAndRun x = 
+    // get editorValue
+    //Run (cmEditor().getValue())
+    HighlightLine 0
+let fetchAndRunOne x = 
+    // get editorValue
+    RunOne (cmEditor().getValue())
 
 let runButton = function
     | BRunAll -> buttonOnClick "Run" "default" fetchAndRun
@@ -144,7 +116,7 @@ let runButton = function
     | BReset -> buttonOnClick "Reset" "success" (fun x -> Reset)
     | BResetUnsuccessful -> buttonOnClick "Reset" "danger" (fun x -> Reset)
 
-
+/// DOM for Message popup in Navigation
 let message msg =
     div [attribute "class" "alert alert-warning alert-dismissible alert-head"
          attribute "role" "alert"]
@@ -166,6 +138,7 @@ let message msg =
                    [text msg]
         ]
 
+/// Header DOM
 let header model =
     nav [attribute "class" "navbar navbar-inverse navbar-fixed-top"]
         [
@@ -266,6 +239,38 @@ let memory =
                 ]
         ]
 
+
+/// creates DOM for register sidebar
+let listRegister machineState =
+    ///Returns the case name of the object with union type 'ty.
+    let getUnionCaseName (x:RegisterIndex) = 
+        match FSharpValue.GetUnionFields(x, typeof<RegisterIndex>) with
+        | case, _ -> case.Name  
+
+    let oneRegister (name, value) =
+        li [attribute "class" "list-group-item"]
+            [
+                text value
+                span [attribute "class" "badge"]
+                        [text name]
+            ]
+
+    // custom sort function to sort registers right
+    // if other registers are present, order does not matter
+    let sortRegisters ((name: string), _) =
+        match name with
+        | str when str.StartsWith("R") ->  str.Substring(1) |> int
+        | _ -> 100
+
+    // get the registers, and extract name and value in sorted fashion
+    State.getRegisters machineState
+    |> Map.toList 
+    |> List.map( fun (ri, v) -> getUnionCaseName(ri), v.ToString() )
+    |> List.sortBy sortRegisters
+    |> List.map oneRegister
+
+
+/// Control Register DOM
 let oneRegisterHorizontalWrapper (name, value) =
     li [attribute "class" "col-cprs"]
         [
@@ -282,15 +287,7 @@ let cprsView =
             oneRegisterHorizontalWrapper("R", "1");
             oneRegisterHorizontalWrapper("S", "1");                        
         ]
-// <div class="row">
-//   <div class="col-md-6">
-//     <div class="list-group-item">0<span class="badge">R0</span>
-//   </div>
-// </div>
-//     <div class="col-md-6">
-//         <div class="list-group-item">0<span class="badge">R0</span></div>
-//     </div>
-// </div>
+
 let body model =
     div [attribute "class" "container starter-template"]
         [
@@ -313,20 +310,15 @@ let body model =
                 ]
         ]
 
-// <div class="alert alert-warning alert-dismissible" role="alert">
-//   <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-//   <strong>Warning!</strong> Better check yourself, you're not looking too good.
-// </div>
 
-
-
+/// View that combines DOM of header and body
 let view model =
     section [attribute "class" "app-wrapper"]
             ([(header model); (body model)])
-// Main function
-// Starts MVC first and then initialises CodeMirror
 
 
+
+/// Main function that sets up the application
 let main () =
 
     printfn "Starting..."
@@ -365,6 +357,7 @@ let main () =
 //         MOVS R0, R5
 //         BNE loop"
         
+    // highlight one line in editor
     // let doc = cmEditor().getDoc()
     // printf "%A" (doc.addLineClass(0,"background", "line-bg"))
     // printf "%A" (cmEditor().setLineClass (1.0, "fg", "line-bg"))
