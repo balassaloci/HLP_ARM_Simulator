@@ -31,9 +31,6 @@ type private CompareInstr = {operation: CompareOpCode;
 type private BitwiseInstr = {operation: BitwiseOpCode;
                              operands: BitwiseOperands}
 
-type private FlexibleOperandUnit =
-    Value of int | InlineInstruction of ShiftInstr
-
 type ALUInstruction =
     private
         | AInst of ArithmeticInstr
