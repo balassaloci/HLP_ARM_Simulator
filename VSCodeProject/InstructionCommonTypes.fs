@@ -1,7 +1,6 @@
 module InstructionsCommonTypes
 
 open Machine
-// open NewALU
 
 type ConditionSuffix = | EQ | NE | CS | HS | CC | LO | MI | PL | VS | VC | HI
                        | LS | GE | LT | GT | LE | AL
@@ -18,10 +17,4 @@ type MixedOperand = | Register of RegisterIndex | Literal of int
 type ExecOperand = | MixedOp of MixedOperand
                    | ExprOp of RegOperand * Shift * MixedOperand
 
-// type Instruction1 =
-//     private | ALUInst of NewALU.ALUInstruction1
-
-// module Instruction1 =
-//     let execute state instruction =
-//         match instruction with
-        // | ALUInst ai -> NewALU.ALUInstruction1.execute state ai
+type BitwiseNumber = {body:int; carry:int}
