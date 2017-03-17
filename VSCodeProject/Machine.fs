@@ -2,19 +2,16 @@ module Machine
 
 type RegisterIndex = 
     | R0 | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 
-    | R9 | R10 |R11 | R12 | R13 
+    | R9 | R10 |R11 | R12 | R13 | LR | PC
 
 type StatusBit = | N | Z | C | V
-type SystemRegister = |LR | PC 
-type System = |Registers of SystemRegister | Bits of StatusBit
 
-type SystemValue = |RegisterValue of int | BitValue of bool
 
 type State = 
     private
         { Register : Map<RegisterIndex,int>
           Memory : Map<int,int> 
-          Status : Map<System,SystemValue>
+          Status : Map<StatusBit,bool>
           Instructions : array<int>
           Labels : Map<string,int>} // change type to that of Instructions 
 
@@ -61,31 +58,29 @@ module State =
 
     /// Takes a system register and state as input
     /// Returns the value in that system register
-    let systemRegisterValue (reg:SystemRegister) state = 
-        match Map.find (Registers reg) state.Status with
-        | RegisterValue x -> x
-        | _  -> failwithf("input is not a system register")
-
+    let systemRegisterValue (reg:RegisterIndex) state = 
+        registerValue reg state
+        
     /// Takes a status bit and state as input
     /// Returns a boolean for that status bit
     let statusBitValue (bit:StatusBit) state = 
-        match Map.find (Bits bit) state.Status with
-        | BitValue b -> b
-        | _ -> failwithf("input in not a status bit")
-
+        Map.find bit state.Status
+        
     /// Takes a system register, value and state as input
     /// Returns a new state with updated system register
-    let updateSystemRegister (reg:SystemRegister) (value:int) state = 
-        {state with Status = Map.add (Registers reg) (RegisterValue value) state.Status}
+    let updateSystemRegister (reg:RegisterIndex) (value:int) state = 
+        updateRegister reg value state
 
     /// Takes a status bit, a boolean and state as input
     /// Returns a new state with updated status bit
     let updateStatusBit (bit:StatusBit) (b:bool) state = 
-        {state with Status = Map.add (Bits bit) (BitValue b) state.Status}
+        {state with Status = Map.add bit b state.Status}
 
     /// Takes state as input
     /// Returns a map of registers
     let getRegisters state = state.Register
+
+    let getMemory state = state.Memory
 
     /// Takes state as input
     /// Returns a map of system registers and status bits
@@ -120,9 +115,7 @@ module State =
             (R8,0); (R9,0); (R10,0); (R12,0); (R13,0)]
         let initialRegisters = Map.ofList regList
         let initialStatus =
-            [(Registers LR , RegisterValue 0); (Registers PC , RegisterValue 0);
-            (Bits N , BitValue false); (Bits Z , BitValue false); 
-            (Bits C, BitValue false); (Bits V, BitValue false)]
+            [(N, false); (Z, false); (C, false); (V, false)]
         {Register = initialRegisters; 
         Memory = Map.empty<int,int>; 
         Status = Map.ofList initialStatus;
