@@ -14,6 +14,7 @@ open App.CodeMirrorInterface
 open Machine
 open Parser
 open Execution
+open ErrorHandler
 
 // union name
 open Microsoft.FSharp.Reflection
@@ -25,6 +26,7 @@ type Model =
     {
         MachineState: State
         Buttons: Buttonstate list
+        ErrorMessage: string
     }
 
 /// actions that are called from elments in the view
@@ -33,6 +35,7 @@ type Actions =
     | Run of string
     | Reset
     | RunOne of string
+    | ErrorMessage of string
 
 /// Global Codemirror
 /// initialise codemirror as global variable, but assign it to a div
@@ -54,6 +57,14 @@ let cmEditor () =
     -> Returns new model as well as jsCalls that will be executed
 *)
 
+// REPLACE WITH THIS, AS SOON AS ERROR HANDLING IS IMPLEMENTED
+// let processOneLine s machineState =
+//     maybe {
+//         let! parsed = Parser.ParseText s
+//         let! executed = Execution.executeALUInstructionList machineState
+//         return executed
+//     }
+
 // TODO: ability to reset machinestate
 //       error handling!!
 let update model msg =
@@ -65,11 +76,14 @@ let update model msg =
     let model' =
         match msg with
         | Run s | RunOne s -> let processOneLine =
-                                s |> ParseText |> List.map optionGetter |> executeALUInstructionList model.MachineState
+                                  s |> ParseText |> List.map optionGetter |> executeALUInstructionList model.MachineState
                               {model with MachineState = processOneLine}
-        | Reset -> let defaultButtonState = [BRunAll; BRunStep];
-                   {model with Buttons = defaultButtonState}        // TODO: reset machine state
-        | HighlightLine line ->  model 
+        | Reset -> let defaultButtonState = [BRunAll; BRunStep; BReset]
+                   let resetState = State.makeInitialState()
+                   {model with Buttons = defaultButtonState; MachineState = resetState}        // TODO: reset machine state
+        | ErrorMessage msg -> {model with ErrorMessage = msg}
+        | _ ->  model 
+
     
     // handle sideeffects separately
     let jsCall =
@@ -104,8 +118,8 @@ let buttonOnClick label cl func =
 
 let fetchAndRun x = 
     // get editorValue
-    //Run (cmEditor().getValue())
-    HighlightLine 0
+    Run (cmEditor().getValue())
+
 let fetchAndRunOne x = 
     // get editorValue
     RunOne (cmEditor().getValue())
@@ -170,7 +184,7 @@ let header model =
                         [
                             ul  [attribute "class" "nav navbar-nav navbar-right"]
                                 (model.Buttons |> List.map runButton)
-                            (message "alert")
+                            div [](if model.ErrorMessage = "" then [] else [message model.ErrorMessage])
                         ]
 
                 ]
@@ -239,14 +253,14 @@ let memory =
                 ]
         ]
 
+/// helper function to get the name of the union case
+let getUnionCaseName (x) = 
+        match FSharpValue.GetUnionFields(x, typeof<'T>) with
+        | case, _ -> case.Name  
 
 /// creates DOM for register sidebar
 let listRegister machineState =
-    ///Returns the case name of the object with union type 'ty.
-    let getUnionCaseName (x:RegisterIndex) = 
-        match FSharpValue.GetUnionFields(x, typeof<RegisterIndex>) with
-        | case, _ -> case.Name  
-
+    
     let oneRegister (name, value) =
         li [attribute "class" "list-group-item"]
             [
@@ -263,30 +277,51 @@ let listRegister machineState =
         | _ -> 100
 
     // get the registers, and extract name and value in sorted fashion
-    State.getRegisters machineState
-    |> Map.toList 
-    |> List.map( fun (ri, v) -> getUnionCaseName(ri), v.ToString() )
-    |> List.sortBy sortRegisters
-    |> List.map oneRegister
+    let registers = State.getRegisters machineState
+                    |> Map.toList 
+                    |> List.map( fun (ri, v) -> getUnionCaseName(ri), v.ToString() )
+                    |> List.sortBy sortRegisters
+                    |> List.map oneRegister
+
+    registers
+    // let matchSystemRegister key value = 
+    //     match key with
+    //     | Registers _ -> true
+    //     | _ -> false
+
+    // let convertSystemRegister = function
+    //     | (Registers name, RegisterValue value) -> getUnionCaseName(name), value.ToString()
+    //     | _ -> failwith "error parsing system register"
+
+    // let systemRegisters = State.getStatus machineState
+    //                       |> Map.filter matchSystemRegister
+    //                       |> Map.toList
+    //                       |> List.map (convertSystemRegister >> oneRegister)
+
+    // List.append registers systemRegisters
 
 
 /// Control Register DOM
-let oneRegisterHorizontalWrapper (name, value) =
-    li [attribute "class" "col-cprs"]
-        [
-            text value
-            span [attribute "class" "badge"]
-                 [text name]
-        ]
 
-let cprsView =
-    ul [attribute "class" "list-group row-cprs"]
-        [
-            oneRegisterHorizontalWrapper("C", "1");
-            oneRegisterHorizontalWrapper("P", "1");
-            oneRegisterHorizontalWrapper("R", "1");
-            oneRegisterHorizontalWrapper("S", "1");                        
-        ]
+
+
+
+let statusBits machineState = 
+                        
+    let oneRegisterHorizontalWrapper (name, value) =
+        li [attribute "class" "col-cprs"]
+            [
+                text value
+                span [attribute "class" "badge"]
+                    [text name]
+            ]
+
+    let convertSystemBits (name, value) =  getUnionCaseName(name), value.ToString()
+
+    State.getStatus machineState
+        |> Map.toList
+        |> List.map (convertSystemBits >> oneRegisterHorizontalWrapper)
+        
 
 let body model =
     div [attribute "class" "container starter-template"]
@@ -305,7 +340,8 @@ let body model =
                         [
                             ul [attribute "class" "list-group"]
                                (listRegister model.MachineState)
-                            cprsView 
+                            ul [attribute "class" "list-group row-cprs"]
+                               (statusBits model.MachineState) 
                         ]
                 ]
         ]
@@ -325,8 +361,8 @@ let main () =
     let initMachineState = State.makeInitialState()
 
     printfn "Creating state"
-    let initButtons = [BRunAll; BRunStep]
-    let initModel = {MachineState = initMachineState; Buttons = initButtons}
+    let initButtons = [BRunAll; BRunStep; BReset]
+    let initModel = {MachineState = initMachineState; Buttons = initButtons; ErrorMessage = "alert"}
 
     createApp initModel view update Virtualdom.createRender
     |> withStartNodeSelector "#app"

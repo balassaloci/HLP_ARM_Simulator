@@ -44,6 +44,7 @@
   <ItemGroup>
     <None Include="App.config" />
     <Compile Include="Machine.fs" />
+    <Compile Include="ErrorHandler.fs">
     <Compile Include="Instruction.fs" />
     <Compile Include="Parser.fs" />
     <Compile Include="Functions.fs" />
@@ -51,7 +52,6 @@
     <Compile Include="ALU.fs" />
     <Compile Include="Memory.fs" />
     <Compile Include="Execution.fs" />
-    <Compile Include="ErrorHandler.fs">
     <Compile Include="Main.fs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />

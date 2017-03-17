@@ -27,6 +27,7 @@
    !-->
   <ItemGroup>
     <Compile Include="VSCodeProject/Machine.fs" />
+    <Compile Include="VSCodeProject/ErrorHandler.fs" />
     <Compile Include="VSCodeProject/Instruction.fs" />
     <Compile Include="VSCodeProject/Parser.fs" />
     <Compile Include="VSCodeProject/Functions.fs" />
