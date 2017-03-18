@@ -1,7 +1,7 @@
 module Memory
 
 open Machine
-open InstructionsCommonTypes
+open InstructionCommonTypes
 open CommonOperandFunctions
 
 type Move = | MOV | MVN
@@ -40,10 +40,11 @@ type private LoadAddressInstr = {operation: LoadAddressOpCode;
                                  operands: LoadAddressOperands}
 
 type MemoryInstruction =
-    private {
-        opcode: string
-        operandsss: string list
-    }
+    private
+        |MvInst of MoveInstr
+        |SInst of SingleMemoryInstr
+        |MuInst of MultipleMemoryInstr
+        |LInst of LoadAddressInstr 
 
 [<RequireQualifiedAccess; 
 CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
@@ -54,8 +55,7 @@ module MemoryInstruction =
         | MOV -> int v
         | MVN -> int ~~~v
 
-
-    let loadSingleRegister (b: MemoryMode) (dest: RegOperand) (address: int) (state: State) =
+    let private loadSingleRegister (b: MemoryMode) (dest: RegOperand) (address: int) (state: State) =
         match b with
         | Byte ->
                 let value = State.getByteFromMemory address state
@@ -67,7 +67,7 @@ module MemoryInstruction =
                 else
                     failwithf("address should be a multiple of 4")
 
-    let storeSingleRegister (b: MemoryMode) (src: RegOperand) (address: int) (state: State) =
+    let private storeSingleRegister (b: MemoryMode) (src: RegOperand) (address: int) (state: State) =
         match b with
         | Byte ->
                 let firstByteValue = (State.registerValue src state) &&& 255
@@ -78,58 +78,51 @@ module MemoryInstruction =
                     State.updateWordInMemory address value state
                 else
                     failwithf("address should be a multiple of 4")
-
-    let loadFA (adrReg: RegOperand) (destRegList: RegOperand list) (state: State) = None
-
-    let loadFD (adrReg: RegOperand) (destRegList: RegOperand list) (state: State) = None
-
-    let loadEA (adrReg: RegOperand) (destRegList: RegOperand list) (state: State) =None
-
-    let loadED (adrReg: RegOperand) (destRegList: RegOperand list) (state: State) = None
-
-    let storeFA (adrReg: RegOperand) (destRegList: RegOperand list) (state: State) =
-        let address = State.registerValue adrReg state
-        let rec storeRegisters (adr:int) (regList: RegOperand list) (s: State) =
-            match regList with
-            | h::t -> 
-                let value = State.registerValue h s
-                let newState = State.updateWordInMemory adr value s
-                storeRegisters (adr+4) t newState
-            | _ -> State.updateRegister adrReg adr s
-        storeRegisters (address+4) destRegList state
-
-    let storeFD (adrReg: RegOperand) (destRegList: RegOperand list) (state: State) = None
-
-    let storeEA (adrReg: RegOperand) (destRegList: RegOperand list) (state: State) =
-        let address = State.registerValue adrReg state
-        let rec storeRegisters (adr:int) (regList: RegOperand list) (s: State) =
-            match regList with
-            | h::t -> 
-                let value = State.registerValue h s
-                let newState = State.updateWordInMemory adr value s
-                storeRegisters (adr+4) t newState
-            | _ -> State.updateRegister adrReg adr s
-        storeRegisters address destRegList state
-
-    let storeED (adrReg: RegOperand) (destRegList: RegOperand list) (state: State) = None
-
     
-    let getSingleRegisterMemoryFunction = function
+    let private getSingleRegisterMemoryFunction = function
         | LDR -> loadSingleRegister
         | STR -> storeSingleRegister
 
-    let getMultipleRegisterMemoryFunctions = function
-        | LDM,FA | LDM,DA -> ()//loadFA
-        | LDM,FD | LDM,IA -> ()//loadFD
-        | LDM,EA | LDM,DB -> ()//loadEA
-        | LDM,ED | LDM,IB -> ()//loadED
-        | STM,FA | STM,IB -> ()//storeFA
-        | STM,FD | STM,DB -> ()//storeFD
-        | STM,EA | STM,IA -> ()//storeEA
-        | STM,ED | STM,DA -> ()//storeED
+    let private stackOperationParams (dir:MultipleMemory*StackDirection) (rList:RegOperand list) =
+        //return regList * offset for each iteration * address offset * register offset
+        match dir with
+        | _,DA | STM,ED | LDM,FA -> (List.rev rList, -4, 0, 0)
+        | _,DB | STM,FD | LDM,EA -> (List.rev rList, -4, -4, 4)
+        | _,IA | STM,EA | LDM,FD -> (rList, 4, 0, 0)
+        | _,IB | STM,FA | LDM,ED -> (rList, 4, 4, -4)
 
+    let private store (param: RegOperand list * int * int * int) adrReg state =
+        let address = State.registerValue adrReg state
+        if address % 4 = 0 then
+            let rList, iOffset, aOffset, rOffset = param
+            let rec storeRegisters adr (regList: RegOperand list) s =
+                match regList with
+                | r::t ->
+                    let rValue = State.registerValue r s
+                    let newState = State.updateWordInMemory adr rValue s
+                    storeRegisters (adr+iOffset) t newState
+                | _ -> State.updateRegister adrReg (adr+rOffset) state
+            storeRegisters (address+aOffset) rList state
+        else
+            failwithf("address should be a multiple of 4")
 
-    let addressExpressionValue (expression: AddressExpression) (state: State) =
+    let private load (param: RegOperand list * int * int * int) adrReg  state =
+        let address = State.registerValue adrReg state
+        if address % 4 = 0 then
+            let rList, iOffset, aOffset, rOffset = param
+            let rec loadRegisters adr (regList:RegOperand list) s =
+                match regList with
+                | r::t ->
+                    let mValue = State.getWordFromMemory adr s
+                    let newState = state |> State.deleteWordInMemory adr
+                                        |> State.updateRegister r mValue
+                    loadRegisters (adr+iOffset) t newState
+                | _ -> State.updateRegister adrReg (adr+rOffset) state
+            loadRegisters (address+aOffset) rList state
+        else
+            failwithf("address should be a multiple of 4")
+
+    let private addressExpressionValue (expression: AddressExpression) (state: State) =
         match expression with
         | Label l -> State.getLabelAddress l state
         | Number n -> n
@@ -155,6 +148,7 @@ module MemoryInstruction =
 
         else
             state
+
     let private executeSingleRegisterMemoryInstruction state (instr:SingleMemoryInstr) =
         let {opcode = core; mode = memoryMode; condSuffix = cond} = instr.operation
         if conditionHolds state cond then
@@ -180,7 +174,17 @@ module MemoryInstruction =
         else
             state
 
-    let private executeMultipleRegisterMemoryInstruction () = None
+    let private executeMultipleRegisterMemoryInstruction state (instr:MultipleMemoryInstr) = 
+        let {opcode = core; mode = sDirection; condSuffix = cond} = instr.operation
+        if conditionHolds state cond then
+            let op1,op2 = instr.operands.op1, instr.operands.op2
+            let parameters = stackOperationParams (core,sDirection) op2
+            match core with
+            | LDM -> load parameters op1 state
+            | STM -> store parameters op1 state
+        else
+            state
+
     let private executeLoadAddressInstruction state (instr:LoadAddressInstr) = 
         let cond = instr.operation.condSuffix
         if conditionHolds state cond then
@@ -191,4 +195,8 @@ module MemoryInstruction =
             state
 
     let execute (state:State) (instr:MemoryInstruction) =
-        failwithf "Not implemented"
+        match instr with
+        |MvInst mvi -> executeMove state mvi
+        |SInst si -> executeSingleRegisterMemoryInstruction state si
+        |MuInst mui -> executeMultipleRegisterMemoryInstruction state mui
+        |LInst li -> executeLoadAddressInstruction state li

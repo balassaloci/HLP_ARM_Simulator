@@ -56,6 +56,9 @@ module State =
             {state with 
                 Memory = Map.add (address/4) newWord state.Memory}
 
+    let deleteWordInMemory address state =
+        {state with Memory = Map.remove (address/4) state.Memory}
+
     /// Takes a system register and state as input
     /// Returns the value in that system register
     let systemRegisterValue (reg:RegisterIndex) state = 
