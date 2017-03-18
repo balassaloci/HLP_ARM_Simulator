@@ -1,13 +1,9 @@
 module Execution
 
-// open ALU
-// open Memory
-// open Branch
-
 type Instruction =
-    private | ALUInst of ALU.ALUInstruction
-            | MemInst of Memory.MemoryInstruction
-            | BrInst of Branch.BranchInstruction
+    | ALUInst of ALU.ALUInstruction
+    | MemInst of Memory.MemoryInstruction
+    | BrInst of Branch.BranchInstruction
 
 [<RequireQualifiedAccess; 
 CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]

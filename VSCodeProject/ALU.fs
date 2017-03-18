@@ -4,7 +4,7 @@ open Machine
 open InstructionsCommonTypes
 open Functions
 open CommonOperandFunctions
-// Note: the link shows something really weird
+// TODO: the link shows something really weird
 //     http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0552a/CIHDDCIF.html
 
 type private 'T ALUOpCode = {opcode:'T; setBit:SetBit;
@@ -41,7 +41,6 @@ type ALUInstruction =
 [<RequireQualifiedAccess; 
 CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
 module ALUInstruction =
-    /// Compute the carry bit for arithmetic
     let parse: string -> ALUInstruction =
         failwithf "Not implemented"
     
@@ -61,6 +60,7 @@ module ALUInstruction =
             let op2 = instr.operands.op2
             
             let op1Val = int64 <| State.registerValue op1 state
+            // Ignore carry here
             let op2Val, _ = execOperandValue op2 state
             let carry = int64 <| if conditionHolds state CS then 1 else 0
             let result = applyArithmeticFunction core carry op1Val op2Val
@@ -84,6 +84,8 @@ module ALUInstruction =
             let op2 = instr.operands.op2
 
             let op1Val = State.registerValue op1 state <<< 1
+            // TODO: Need to make sure op2 is within bounds
+            // ROR in visual has weird specs; OK in ARM specs
             let op2Val = mixedOperandValue op2 state
             let carry = if conditionHolds state CS then 1 else 0
             let {body=result; carry=carry} =

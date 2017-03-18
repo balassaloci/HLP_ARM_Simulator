@@ -1,7 +1,7 @@
 module Memory
 
 open Machine
-open InstructionCommonTypes
+open InstructionsCommonTypes
 open CommonOperandFunctions
 
 type Move = | MOV | MVN

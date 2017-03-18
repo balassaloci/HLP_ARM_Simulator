@@ -1,7 +1,7 @@
 module Branch
 
 open Machine
-open InstructionCommonTypes
+open InstructionsCommonTypes
 open CommonOperandFunctions
 
 type Branch = B | BL
