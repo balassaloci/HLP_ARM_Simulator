@@ -55,7 +55,7 @@ module MemoryInstruction =
         | MOV -> int v
         | MVN -> int ~~~v
 
-    let private loadSingleRegister (b: MemoryMode) (dest: RegOperand) (address: int) (state: State) =
+    let private loadSingleRegister (b: MemoryMode) (dest: RegOperand) (address: int) state =
         match b with
         | Byte ->
                 let value = State.getByteFromMemory address state
@@ -67,7 +67,7 @@ module MemoryInstruction =
                 else
                     failwithf("address should be a multiple of 4")
 
-    let private storeSingleRegister (b: MemoryMode) (src: RegOperand) (address: int) (state: State) =
+    let private storeSingleRegister (b: MemoryMode) (src: RegOperand) (address: int) state =
         match b with
         | Byte ->
                 let firstByteValue = (State.registerValue src state) &&& 255
@@ -122,7 +122,7 @@ module MemoryInstruction =
         else
             failwithf("address should be a multiple of 4")
 
-    let private addressExpressionValue (expression: AddressExpression) (state: State) =
+    let private addressExpressionValue (expression: AddressExpression) state =
         match expression with
         | Label l -> State.getLabelAddress l state
         | Number n -> n
@@ -194,7 +194,7 @@ module MemoryInstruction =
         else
             state
 
-    let execute (state:State) (instr:MemoryInstruction) =
+    let execute state (instr:MemoryInstruction) =
         match instr with
         |MvInst mvi -> executeMove state mvi
         |SInst si -> executeSingleRegisterMemoryInstruction state si
