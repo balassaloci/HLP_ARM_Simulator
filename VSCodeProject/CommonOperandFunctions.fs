@@ -16,7 +16,7 @@ let mixedOperandValue op state =
 
 /// Either extracts numeric value from operand or the value
 /// after shifting the operand.
-let execOperandValue op (state:State) =
+let execOperandValue op state =
     /// Returns true if there exists an 8 LSB bit rotation of this number
     let is8bitRotated x =
         let shifts = [1..32]

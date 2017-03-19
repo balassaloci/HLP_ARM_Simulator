@@ -51,6 +51,12 @@ module ALUInstruction =
         AInst {ArithmeticInstr.operation=opcode;
                ArithmeticInstr.operands=operands}
 
+    /// Check whether R13 and PC are correctly used, if they are
+    let private areValidArithmeticOperands opcode dest op1 op2 =
+        // if op2 = PC || op2 = R13 then
+            // false
+        // else
+            true
 
     let private executeArithmetic state (instr:ArithmeticInstr)=
         let {opcode=core; setBit=S; condSuffix=cond} = instr.operation
@@ -58,6 +64,8 @@ module ALUInstruction =
             let dest = instr.operands.dest
             let op1 = instr.operands.op1
             let op2 = instr.operands.op2
+            if not <| areValidArithmeticOperands core dest op1 op2 then
+                failwith "Wrong operands supplied"
             
             let op1Val = int64 <| State.registerValue op1 state
             // Ignore carry here
@@ -141,7 +149,7 @@ module ALUInstruction =
             state
 
 
-    let execute (state:State) (instr:ALUInstruction) =
+    let execute state (instr:ALUInstruction) =
         match instr with
         | AInst ai -> executeArithmetic state ai
         | SInst si -> executeShift state si
