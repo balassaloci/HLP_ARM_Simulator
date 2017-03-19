@@ -28,7 +28,7 @@ module BranchInstruction =
         state |> State.updateSystemRegister LR originalPCAddress 
             |> State.updateSystemRegister PC nextInstructionAddress
 
-    let execute (state:State) (instr:BranchInstruction) = 
+    let execute state (instr:BranchInstruction) = 
         let {opcode = core; cond = c; label = l} = instr;
         if conditionHolds state c then
             match core with
