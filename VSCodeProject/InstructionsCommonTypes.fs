@@ -1,7 +1,5 @@
 module InstructionsCommonTypes
 
-
-
 type ConditionSuffix = | EQ | NE | CS | HS | CC | LO | MI | PL | VS | VC | HI
                        | LS | GE | LT | GT | LE | AL
 
@@ -27,12 +25,3 @@ type ExecOperand = | MixedOp of MixedOperand
                    | ExprOp of RegOperand * Shift * MixedOperand
 
 type BitwiseNumber = {body:int; carry:int}
-
-// type Instruction =
-//     | ALUInst of ALU.ALUInstruction
-//     | MemInst of Memory.MemoryInstruction
-//     | BrInst of Branch.BranchInstruction
-
-type 'T foo = | A of 'T
-
-// let bar = A Instruction

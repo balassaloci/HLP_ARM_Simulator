@@ -2,14 +2,8 @@ module Machine
 
 open InstructionsCommonTypes
 
-// type RegisterIndex = 
-//     | R0 | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 
-//     | R9 | R10 |R11 | R12 | R13 | LR | PC
 
 type StatusBit = | N | Z | C | V
-
-// type bar<'T> = | A of 'T
-// let funct typea = A typea
 
 type State<'a> = 
     private
@@ -17,7 +11,7 @@ type State<'a> =
           Memory : Map<int,int> 
           Status : Map<StatusBit,bool>
           Instructions : array<'a>
-          Labels : Map<string,int>} // change type to that of Instructions 
+          Labels : Map<string,int>}
 
 [<RequireQualifiedAccess; 
 CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
