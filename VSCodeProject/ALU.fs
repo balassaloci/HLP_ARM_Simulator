@@ -4,6 +4,8 @@ open Machine
 open InstructionsCommonTypes
 open Functions
 open CommonOperandFunctions
+open CommonParserFunctions
+open ErrorHandler
 // TODO: the link shows something really weird
 //     http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0552a/CIHDDCIF.html
 
@@ -38,11 +40,143 @@ type ALUInstruction =
         | CInst of CompareInstr
         | BInst of BitwiseInstr
 
+
+module ALUParser =
+
+    let private parseArithmeticOperands (ops: string list) =       
+       match ops with
+       | destS :: op1S :: op2S :: restS ->
+           let dest = destS |> getRegIndex
+           let op1 = op1S |> getRegIndex
+           let op2 : ExecOperand = parseExecOperand op2S restS
+           let compiled : ArithmeticOperands =
+               {dest= dest; op1=op1; op2=op2}
+           
+           Success compiled
+       | _ -> Error <| ParseError ("Unrecognized operand pattern")
+    
+    //////////////////////
+    let private parseBitwiseOperands (ops: string list) =       
+       match ops with
+       | destS :: op1S :: op2S :: restS ->
+           let dest = destS |> getRegIndex
+           let op1 = op1S |> getRegIndex
+           let op2 : ExecOperand = parseExecOperand op2S restS
+           let compiled : BitwiseOperands =
+               {dest= dest; op1=op1; op2=op2}
+           
+           Success compiled
+       | _ -> Error <| ParseError ("Unrecognized operand pattern")
+
+    let private parseShiftOperands (ops: string list) =
+        match ops with
+        | destS :: op1S :: op2S :: [] ->
+            let dest = destS |> getRegIndex
+            let op1 = op1S |> getRegIndex
+            let op2 = op2S |> parseMixedOp
+            let compiled : ShiftOperands = {dest = dest; op1=op1; op2=op2}
+            Success compiled
+        | _ -> Error <| ParseError "Unable to parse operands for shift instruction"
+    
+    let private parseCompareOperands (ops: string list) =
+        match ops with
+        | op1S :: op2S :: restS ->
+            let op1 = op1S |> getRegIndex
+            let op2 : ExecOperand = parseExecOperand op2S restS
+            let compiled : CompareOperands =
+                {op1 =  op1; op2 = op2}
+            Success compiled
+        | _ -> Error <| ParseError "Unable to parse operands for compare instruction"
+                  
+
+
+    //let parseArithmetic'' (InlineInstruction : 
+    //let parseArithmetic (dest, op1, op2, shiftop)  =
+    //    let destOp = getRegIndex dest
+    //    let op1Op = getRegIndex op1
+    //    let op2Op : ExecOperand = 
+    //       if isNumeric op2 then
+    //           MixedOp (Literal (int op2))
+    //       else
+    //           MixedOp (Register (getRegIndex op2))
+        
+    //    (destOp, op1Op, op2Op)
+
+    //
+    //type private ArithmeticOperands = {dest:RegOperand;
+    //                                   op1:RegOperand; op2:ExecOperand}
+
+
+    //let parseArithmetic' (instr : Arithmetic) (scond) (paramStr) =
+    //    let parsedScond = getSCond scond
+    //    match parsedScond with
+    //    | Some  (sb, cond) ->
+    //        let fullOpCode = {opcode = instr; setBit = sb; condSuffix = cond}
+    //        let operands : ArithmeticOperands =
+    //            match paramStr with
+    //            | dest :: op1 :: op2 :: shiftop -> 
+    //                {dest = getRegIndex
+    //    | None -> None
+
+    let fst' (a, b) maybe = a
+    let extract x = match x with
+                    | Success y -> y
+                    | _ -> failwith "Unable to parse x"
+    let parseLine line =
+        maybe {
+
+            let cleanLine = line |> decomment |> trimmer |> splitInstr
+
+            let instrStr : string = fst cleanLine
+            let paramStr : string = snd cleanLine
+            let splitOper = splitOperands paramStr
+            let! instr = getALUInstruction instrStr.[0..2]
+            let scode = getSCond instrStr.[3..]
+
+            let! operands = match instr with
+                            | ArithmeticInstructionT i -> 
+                                let AOpCode = {opcode = i; setBit = (fst scode);
+                                                condSuffix = (snd scode)}
+                                let opers = parseArithmeticOperands splitOper
+                                match opers with
+                                | Success ( x) -> Success (AInst {ArithmeticInstr.operation = AOpCode; operands = x})
+                                | _ -> Error <| ParseError "Unable to extract o"
+
+                            | ShiftInstructionT i -> 
+                                let AOpCode : ShiftOpCode = {opcode = i; setBit = (fst scode);
+                                                condSuffix = (snd scode)}
+                                let opers : ShiftOperands Maybe = parseShiftOperands splitOper
+                                match opers with
+                                | Success (x) -> Success (SInst {operation = AOpCode; operands = x})
+                                | _ -> Error <| ParseError "Unable to extract o"
+                             
+                            | CompareInstructionT i -> 
+                                let AOpCode : CompareOpCode = {opcode = i; condSuffix = (snd scode)}
+                                let opers : CompareOperands Maybe = parseCompareOperands splitOper
+                                match opers with
+                                | Success (x) -> Success (CInst {operation = AOpCode; operands = x})
+                                | _ -> Error <| ParseError "Unable to extract o"
+
+                            | BitwiseInstructionT i -> 
+                                let AOpCode : BitwiseOpCode = {opcode = i; setBit = (fst scode); condSuffix = (snd scode)}
+                                let opers = parseBitwiseOperands splitOper
+                                match opers with
+                                | Success (x) -> Success (BInst {operation = AOpCode; operands = x})
+                                | _ -> Error <| ParseError "Unable to extract o"
+
+                            //| _ -> Error <| ParseError "Unable to parse instruction"
+            return operands
+        }
+
+
 [<RequireQualifiedAccess; 
 CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
 module ALUInstruction =
+    open ALUParser
     let parse: string -> ALUInstruction =
-        failwithf "Not implemented"
+        fun x -> match parseLine x with
+                 | Success t -> t
+                 | Error x -> failwithf "%A" x
     
     let constructSample () =
         let opcode = {opcode=ADD; setBit=IgnoreStatus; condSuffix=AL}
