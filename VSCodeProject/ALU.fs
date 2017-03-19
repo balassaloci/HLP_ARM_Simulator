@@ -89,35 +89,6 @@ module ALUParser =
         | _ -> Error <| ParseError "Unable to parse operands for compare instruction"
                   
 
-
-    //let parseArithmetic'' (InlineInstruction : 
-    //let parseArithmetic (dest, op1, op2, shiftop)  =
-    //    let destOp = getRegIndex dest
-    //    let op1Op = getRegIndex op1
-    //    let op2Op : ExecOperand = 
-    //       if isNumeric op2 then
-    //           MixedOp (Literal (int op2))
-    //       else
-    //           MixedOp (Register (getRegIndex op2))
-        
-    //    (destOp, op1Op, op2Op)
-
-    //
-    //type private ArithmeticOperands = {dest:RegOperand;
-    //                                   op1:RegOperand; op2:ExecOperand}
-
-
-    //let parseArithmetic' (instr : Arithmetic) (scond) (paramStr) =
-    //    let parsedScond = getSCond scond
-    //    match parsedScond with
-    //    | Some  (sb, cond) ->
-    //        let fullOpCode = {opcode = instr; setBit = sb; condSuffix = cond}
-    //        let operands : ArithmeticOperands =
-    //            match paramStr with
-    //            | dest :: op1 :: op2 :: shiftop -> 
-    //                {dest = getRegIndex
-    //    | None -> None
-
     let fst' (a, b) maybe = a
     let extract x = match x with
                     | Success y -> y

@@ -4,6 +4,7 @@ open Machine
 open InstructionsCommonTypes
 open CommonOperandFunctions
 
+//TODO: Special instructions to be added here, don't forget to parse them too ;)
 type Move = | MOV | MVN
 type SingleMemory = | LDR | STR
 type MemoryMode = | Byte | Word
