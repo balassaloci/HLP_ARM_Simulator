@@ -137,9 +137,9 @@ module MemoryInstruction =
             let value = applyMoveFunction core v 
             match setBit with
             | UpdateStatus -> 
-                let n = if value < 0 then true else false
-                let z = if value = 0 then true else false
-                let c = if carry = 1 then true else false
+                let n = (value < 0)
+                let z = (value = 0)
+                let c = (carry = 1)
                 state |> State.updateStatusBit N n
                       |> State.updateStatusBit Z z
                       |> State.updateStatusBit C c

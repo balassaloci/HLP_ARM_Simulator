@@ -3,13 +3,14 @@ module Main
 open Machine
 // open Instruction
 open Execution
+open InstructionsCommonTypes
 
 
 // let state = {Register = initialRegisters;Memory = initialMemory}
-let state = State.makeInitialState()
+//let state = State.makeInitialState()
 
 // list of instructions with type Instruction (from exec file)
-
+let state = State.makeInitialState [|Instruction.constructSample ()|]
 
 [<EntryPoint>]
 let main argv =
@@ -25,8 +26,7 @@ let main argv =
     // let result = executeALUInstructionList state instructionList
     
     // printf "Completed %A" k
-    let instr = Execution.Instruction.constructSample ()
-    let newState = Execution.Instruction.execute state instr
+    let newState = Instruction.run state
     printf "%A " <| State.registerValue R0 newState
     printf "%A " <| State.registerValue R1 newState
     printf "%A" <| State.registerValue R2 newState
