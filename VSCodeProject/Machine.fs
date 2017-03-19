@@ -8,7 +8,8 @@ type StatusBit = | N | Z | C | V
 type State<'a> = 
     private
         { Register : Map<RegisterIndex,int>
-          Memory : Map<int,int> 
+          Memory : Map<int,int>
+          Address : int
           Status : Map<StatusBit,bool>
           Instructions : array<'a>
           Labels : Map<string,int>}
@@ -65,6 +66,10 @@ module State =
 
     let deleteWordInMemory address state =
         {state with Memory = Map.remove (address/4) state.Memory}
+
+    let getMemoryAddress state = state.Address
+    let updateMemoryAddress adr state =
+        {state with Address = adr} 
 
     /// Takes a system register and state as input
     /// Returns the value in that system register
@@ -127,8 +132,11 @@ module State =
         let initialRegisters = Map.ofList regList
         let initialStatus =
             [(N, false); (Z, false); (C, false); (V, false)]
+        let iLength = Array.length instructions
+        let address = ((iLength / 256) * 256) + 256 - (iLength % 256)
         {Register = initialRegisters; 
-        Memory = Map.empty<int,int>; 
+        Memory = Map.empty<int,int>;
+        Address = address;
         Status = Map.ofList initialStatus;
         Instructions = instructions;
         Labels = Map.empty<string,int>} //change type to that of instructions
