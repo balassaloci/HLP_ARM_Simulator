@@ -3,6 +3,8 @@ module Memory
 open Machine
 open InstructionsCommonTypes
 open CommonOperandFunctions
+open CommonParserFunctions
+open ErrorHandler
 
 //TODO: Special instructions to be added here, don't forget to parse them too ;)
 type Move = | MOV | MVN
@@ -47,9 +49,15 @@ type MemoryInstruction =
         |MuInst of MultipleMemoryInstr
         |LInst of LoadAddressInstr 
 
+module MemoryParser =
+    let k = 1       
+
 [<RequireQualifiedAccess; 
 CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
 module MemoryInstruction =
+    open MemoryParser
+    let parse: string -> MemoryInstruction =
+        failwithf "Not implemented"
 
     let private applyMoveFunction (core:Move) (v:int64) =
         match core with
