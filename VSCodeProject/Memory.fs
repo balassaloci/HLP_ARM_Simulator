@@ -9,10 +9,11 @@ open ErrorHandler
 //TODO: Special instructions to be added here, don't forget to parse them too ;)
 type Move = | MOV | MVN
 type SingleMemory = | LDR | STR
-type MemoryMode = | Byte | Word
 type MultipleMemory = | LDM | STM
-type StackDirection = | FA | FD | EA | ED | IB | IA | DB | DA
 type MemoryAddress = | ADR
+
+type MemoryMode = | Byte | Word
+type StackDirection = | FA | FD | EA | ED | IB | IA | DB | DA
 type AddressingMethod = | Offset | PreIndexed | PostIndexed
 type AddressExpression = | Label of string | Number of int
 
@@ -20,7 +21,7 @@ type MemoryOpCode<'T,'R> = {opcode: 'T; mode: 'R;
                                 condSuffix: ConditionSuffix}
 
 type private MoveOpCode = MemoryOpCode<Move,SetBit>
-type private SingleMemomryOpCode = MemoryOpCode<SingleMemory,MemoryMode>
+type private SingleMemoryOpCode = MemoryOpCode<SingleMemory,MemoryMode>
 type private MultipleMemoryOpCode = MemoryOpCode<MultipleMemory,StackDirection>
 type private LoadAddressOpCode = MemoryOpCode<MemoryAddress,SetBit>
 
@@ -35,7 +36,7 @@ type private LoadAddressOperands = {dest: RegOperand
                                     exp: AddressExpression}
 
 type private MoveInstr = {operation: MoveOpCode; operands: MoveOperands}
-type private SingleMemoryInstr = {operation: SingleMemomryOpCode;
+type private SingleMemoryInstr = {operation: SingleMemoryOpCode;
                                   operands: SingleMemoryOperands}
 type private MultipleMemoryInstr = {operation: MultipleMemoryOpCode
                                     operands: MultipleMemoryOperands}
@@ -50,14 +51,73 @@ type MemoryInstruction =
         |LInst of LoadAddressInstr 
 
 module MemoryParser =
-    let k = 1       
+
+    type MemoryInstructionTypes =
+        | MoveInstructionT of Move
+        | SingleMemoryT of SingleMemory
+        | MultipleMemoryT of MultipleMemory
+        | MemoryAddressT of MemoryAddress
+
+    let getMemoryInstruction instruction =
+        match instruction with
+        | "MOV" -> MoveInstructionT MOV
+        | "MVN" -> MoveInstructionT MVN
+        | "LDR" -> SingleMemoryT LDR
+        | "STR" -> SingleMemoryT STR
+        | "LDM" -> MultipleMemoryT LDM
+        | "STM" -> MultipleMemoryT STM
+        | "ADR" -> MemoryAddressT ADR
+        | _ -> failwithf "Unable to parse memory instruction %A" instruction
+    
+    let parseMoveInstruction (i:Move) scode splitOper =
+        match splitOper with
+        | op1S :: op2S :: restS ->
+            let op1 = op1S |> getRegIndex
+            let op2 : ExecOperand = parseExecOperand op2S restS
+            let opcode : MoveOpCode = {opcode = i; mode = fst scode; condSuffix = snd scode}
+            let operands : MoveOperands = {dest = op1; op1 = op2}
+
+            let instr : MemoryInstruction = MvInst {operation = opcode; operands = operands}
+            instr
+
+        | _ -> failwithf "Unable to parse move instruction"
+    
+    let parseSingleMemoryInstruction (i:SingleMemory) scode splitOper =
+        failwith "not implemented"
+
+        //let operands : MoveOperands = {dest =
+        //MoveOpCode
+
+    let parseLine line =
+        maybe {
+            let cleanLine = line |> decomment |> trimmer |> splitInstr
+            let instrStr : string = fst cleanLine
+            let paramStr : string = snd cleanLine
+            let splitOper = splitOperands paramStr
+            let instr = getMemoryInstruction instrStr.[0..2]
+            let scode = getSCond instrStr.[3..] 
+
+            let operands =
+                match instr with
+                | MoveInstructionT i -> parseMoveInstruction i scode splitOper
+            
+
+            return operands
+        }
+
+          
 
 [<RequireQualifiedAccess; 
 CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
 module MemoryInstruction =
     open MemoryParser
     let parse: string -> MemoryInstruction =
-        failwithf "Not implemented"
+        fun x ->
+            match parseLine x with
+            | Success i -> i
+            | Error t -> failwith "unable to parse"
+        
+        //failwithf "Not implemented"
 
     let private applyMoveFunction (core:Move) (v:int64) =
         match core with

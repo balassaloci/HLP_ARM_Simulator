@@ -81,7 +81,6 @@ let getRegIndex (r:string) =
     | "CSPR" | "LR" | "PC" | _ -> failwith "Invalid register address"
 
 let getSCond scond =
-
     let matchCond cond =
         match cond with
         | "EQ" -> EQ
@@ -139,6 +138,8 @@ let getALUInstruction instruction =
         | "BIC" -> Success (BitwiseInstructionT BIC)
         | "ORR" -> Success (BitwiseInstructionT ORR)
         | _ -> Error <| ParseError ("Unrecognized ALU instruction " + instruction)
+
+
 
 (*
 LSL #imm5 LSR #imm5 ASR #imm5 ROR #imm5 RRX

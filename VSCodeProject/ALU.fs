@@ -104,36 +104,37 @@ module ALUParser =
             let! instr = getALUInstruction instrStr.[0..2]
             let scode = getSCond instrStr.[3..]
 
-            let! operands = match instr with
-                            | ArithmeticInstructionT i -> 
-                                let AOpCode = {opcode = i; setBit = (fst scode);
-                                                condSuffix = (snd scode)}
-                                let opers = parseArithmeticOperands splitOper
-                                match opers with
-                                | Success ( x) -> Success (AInst {ArithmeticInstr.operation = AOpCode; operands = x})
-                                | _ -> Error <| ParseError "Unable to extract o"
+            let! operands = 
+                match instr with
+                | ArithmeticInstructionT i -> 
+                    let AOpCode = {opcode = i; setBit = (fst scode);
+                                    condSuffix = (snd scode)}
+                    let opers = parseArithmeticOperands splitOper
+                    match opers with
+                    | Success ( x) -> Success (AInst {ArithmeticInstr.operation = AOpCode; operands = x})
+                    | _ -> Error <| ParseError "Unable to extract o"
 
-                            | ShiftInstructionT i -> 
-                                let AOpCode : ShiftOpCode = {opcode = i; setBit = (fst scode);
-                                                condSuffix = (snd scode)}
-                                let opers : ShiftOperands Maybe = parseShiftOperands splitOper
-                                match opers with
-                                | Success (x) -> Success (SInst {operation = AOpCode; operands = x})
-                                | _ -> Error <| ParseError "Unable to extract o"
-                             
-                            | CompareInstructionT i -> 
-                                let AOpCode : CompareOpCode = {opcode = i; condSuffix = (snd scode)}
-                                let opers : CompareOperands Maybe = parseCompareOperands splitOper
-                                match opers with
-                                | Success (x) -> Success (CInst {operation = AOpCode; operands = x})
-                                | _ -> Error <| ParseError "Unable to extract o"
+                | ShiftInstructionT i -> 
+                    let AOpCode : ShiftOpCode = {opcode = i; setBit = (fst scode);
+                                    condSuffix = (snd scode)}
+                    let opers : ShiftOperands Maybe = parseShiftOperands splitOper
+                    match opers with
+                    | Success (x) -> Success (SInst {operation = AOpCode; operands = x})
+                    | _ -> Error <| ParseError "Unable to extract o"
+                 
+                | CompareInstructionT i -> 
+                    let AOpCode : CompareOpCode = {opcode = i; condSuffix = (snd scode)}
+                    let opers : CompareOperands Maybe = parseCompareOperands splitOper
+                    match opers with
+                    | Success (x) -> Success (CInst {operation = AOpCode; operands = x})
+                    | _ -> Error <| ParseError "Unable to extract o"
 
-                            | BitwiseInstructionT i -> 
-                                let AOpCode : BitwiseOpCode = {opcode = i; setBit = (fst scode); condSuffix = (snd scode)}
-                                let opers = parseBitwiseOperands splitOper
-                                match opers with
-                                | Success (x) -> Success (BInst {operation = AOpCode; operands = x})
-                                | _ -> Error <| ParseError "Unable to extract o"
+                | BitwiseInstructionT i -> 
+                    let AOpCode : BitwiseOpCode = {opcode = i; setBit = (fst scode); condSuffix = (snd scode)}
+                    let opers = parseBitwiseOperands splitOper
+                    match opers with
+                    | Success (x) -> Success (BInst {operation = AOpCode; operands = x})
+                    | _ -> Error <| ParseError "Unable to extract o"
 
                             //| _ -> Error <| ParseError "Unable to parse instruction"
             return operands
