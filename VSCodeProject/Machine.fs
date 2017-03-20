@@ -15,7 +15,8 @@ type State<'a> =
           Address : int
           Status : Map<StatusBit,bool>
           Instructions : array<'a>
-          Labels : Map<string,int>}
+          Labels : Map<string,int>
+          End: bool}
 
 [<RequireQualifiedAccess; 
 CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
@@ -127,6 +128,9 @@ module State =
         let oldPC = systemRegisterValue PC state
         updateSystemRegister PC (oldPC + 4) state
 
+    let endExecution state = 
+        {state with End = true}
+
     /// Initializes state
     /// Registers and Memory set to 0
     /// Status registers set to false    
@@ -144,4 +148,5 @@ module State =
         Address = address;
         Status = Map.ofList initialStatus;
         Instructions = instructions;
-        Labels = Map.empty<string,int>} //change type to that of instructions
+        Labels = Map.empty<string,int>;
+        End = false} //change type to that of instructions
