@@ -64,23 +64,24 @@ let cmEditor () =
 //         let! executed = Execution.executeALUInstructionList machineState
 //         return executed
 //     }
+let parseAndRun str state =
+    let optionGetter = function
+            | Some x -> x
+            | None -> failwithf "no!"
+    str |> ParseText |> List.map optionGetter |> executeALUInstructionList state
 
 // TODO: ability to reset machinestate
 //       error handling!!
 let update model msg =
 
-    let optionGetter = function
-        | Some x -> x
-        | None -> failwithf "no!"
-
     let model' =
         match msg with
-        | Run s | RunOne s -> let processOneLine =
-                                  s |> ParseText |> List.map optionGetter |> executeALUInstructionList model.MachineState
-                              {model with MachineState = processOneLine}
+        | Run s -> let resetState = State.makeInitialState()
+                   {model with MachineState = parseAndRun s resetState}
+        | RunOne s -> {model with MachineState = parseAndRun s model.MachineState}             // TODO: only advance, not parse
         | Reset -> let defaultButtonState = [BRunAll; BRunStep; BReset]
                    let resetState = State.makeInitialState()
-                   {model with Buttons = defaultButtonState; MachineState = resetState}        // TODO: reset machine state
+                   {model with Buttons = defaultButtonState; MachineState = resetState}
         | ErrorMessage msg -> {model with ErrorMessage = msg}
         | _ ->  model 
 
@@ -191,7 +192,27 @@ let header model =
         ]
 
 
-let memorytable =
+let memorytable memory = 
+
+    let memoryline (address, value) =
+        tr []
+            [
+                th [attribute "scope" "row"] [text address]
+                td [][text "?"]
+                td [][text "?"]
+                td [][text "?"]
+                td [][text "?"]
+                td [][text value]
+            ]
+    
+    let convertAddressValue (name, value) =  name.ToString(), value.ToString()
+
+    memory
+    |> Map.toList
+    |> List.map(convertAddressValue >> memoryline)
+
+
+let memorywrapper memory =
     table [attribute "class" "table"]
           [
               thead []
@@ -207,20 +228,10 @@ let memorytable =
                            ]
                     ]
               tbody []
-                    [
-                        tr []
-                           [
-                               th [attribute "scope" "row"] [text "0x100"]
-                               td [][text "0x0"]
-                               td [][text "0x0"]
-                               td [][text "0x0"]
-                               td [][text "0x0"]
-                               td [][text "0"]
-                           ]
-                    ]
+                    (memorytable memory)
           ]
 
-let memory =
+let memory mem =
 
     div [attribute "class" "panel-group"
          attribute "id" "accordion"
@@ -247,7 +258,7 @@ let memory =
                             div [attribute "class" "panel-body"]
                                 [ 
                                    text "TODO ..."
-                                   (memorytable)
+                                   (memorywrapper mem)
                                 ]
                         ]
                 ]
@@ -315,8 +326,12 @@ let statusBits machineState =
                 span [attribute "class" "badge"]
                     [text name]
             ]
+    
+    let bool2String = function
+        | true -> "1"
+        | false -> "0"
 
-    let convertSystemBits (name, value) =  getUnionCaseName(name), value.ToString()
+    let convertSystemBits (name, value) =  getUnionCaseName(name), bool2String(value)
 
     State.getStatus machineState
         |> Map.toList
@@ -334,7 +349,7 @@ let body model =
                                       attribute "id" "code"
                                       attribute "style" "display: none;"]
                                      [text ""]
-                            (memory)
+                            (memory (State.getMemory model.MachineState))
                         ]
                     div [attribute "class" "col-md-4"]
                         [
@@ -378,7 +393,10 @@ let main () =
     | Uninit -> editorWrapper <- CM initEditor
     | _ -> failwithf "not possible"
 
-    cmEditor().setValue "ADD R0, R0, R1"
+    cmEditor().setValue "ADD R0, R0, R1
+SUB R0, R0, R1
+LSL R0, R1, 4
+SUB R0, R0, 5"
 //     cmEditor().setValue "        MOV R0, #1024          ; R0 is input, decreases by factors of 10
 //         MOV R1, #0             ; R1 is sum of digits
 //         MOV R2, #0x19000000    ; R2 is constantly 0x1999999A
