@@ -33,6 +33,7 @@
     <Compile Include="VSCodeProject/Functions.fs" />
     <Compile Include="VSCodeProject/CommonOperandFunctions.fs" />
     <Compile Include="VSCodeProject/CommonParserFunctions.fs" />
+    <Compile Include="VSCodeProject/Other.fs" />
     <Compile Include="VSCodeProject/ALU.fs" />
     <Compile Include="VSCodeProject/Memory.fs" />
     <Compile Include="VSCodeProject/Branch.fs" />

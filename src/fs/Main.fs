@@ -86,24 +86,25 @@ let update model msg =
         State.makeInitialState instructions
         
     let runOnce once s =
+        printfn "TEST: run once"
         try
-            let initState = s |> parseAndPrepare
+            let initState = Instruction.prepareState s
             match once with 
             | true -> {model with MachineState = Instruction.runOnce initState; Runstate = Running} // TODO reset at last
             | false -> {model with MachineState = Instruction.runAll initState; Runstate = Init} // TODO change
         with
-            | Exception(msg) -> {model with ErrorMessage = msg; Runstate = Init}
+            | CustomException(msg) -> {model with ErrorMessage = msg; Runstate = Init}
     
     let model' =
         match msg with
         | Run s -> runOnce false s
         | RunOne s when model.Runstate = Init -> runOnce true s
-        | RunOne _ -> //try 
+        | RunOne _ -> try 
                         {model with MachineState = Instruction.runOnce model.MachineState}
-                      //with
-                      //  | Failure(msg) -> {model with ErrorMessage = msg; Runstate = Init}
+                      with
+                        | CustomException(msg) -> {model with ErrorMessage = msg; Runstate = Init}
         | Reset -> let defaultButtonState = [BRunAll; BRunStep; BReset]
-                   let resetState = State.makeInitialState [||]
+                   let resetState = State.makeInitialState [||] Map.empty<string, int>
                    {model with Buttons = defaultButtonState; MachineState = resetState; Runstate = Init}
         | ErrorMessage msg -> {model with ErrorMessage = msg}
         | _ ->  model 
@@ -374,7 +375,7 @@ let view model =
 let main () =
 
     printfn "Starting..."
-    let initMachineState = State.makeInitialState [||]
+    let initMachineState = State.makeInitialState [||] Map.empty<string, int>
 
     printfn "Creating state"
     let initButtons = [BRunAll; BRunStep; BReset]
