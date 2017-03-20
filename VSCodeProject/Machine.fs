@@ -130,6 +130,8 @@ module State =
 
     let endExecution state = 
         {state with End = true}
+    
+    let checkEndExecution state = state.End
 
     /// Initializes state
     /// Registers and Memory set to 0
