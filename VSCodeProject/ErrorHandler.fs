@@ -5,14 +5,14 @@ open Machine
 /// List of all possible errors, add all cases here
 /// ADD YOUR ERRORS HERE
 type IError =
-    | ParseError
+    | ParseError of string
     | ALUError
     | MemoryError
 
 /// Explanation of all errors, to display on GUI
 /// AND EXPLAIN HERE
 let errorHandler = function
-    | ParseError -> "parse error, ..."
+    | ParseError e -> "parse error, " + e
     | ALUError -> "alu error"
     | MemoryError -> "memory error"
 
