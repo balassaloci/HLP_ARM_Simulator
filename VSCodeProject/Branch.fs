@@ -21,7 +21,7 @@ type private BranchInstruction =
 type ControlInstruction =
     private
         | BInstr of BranchInstruction
-        | CInstr of EndInstruction
+        | EInstr of EndInstruction
 
 module BranchParser =
     let parseLine line : BranchInstruction Maybe =
@@ -95,4 +95,4 @@ module ControlInstruction =
     let execute state (instr: ControlInstruction) =
         match instr with
         |BInstr bi -> executeBranchInstruction state bi
-        |CInstr ci -> executeEndInstruction state ci
+        |EInstr ci -> executeEndInstruction state ci
