@@ -75,3 +75,9 @@ module OtherInstruction =
                                                   (instr:DeclareConstantInstr) =
         let label,n = instr.label,instr.op1
         State.addLabelAddress label n state
+    
+    let execute state (instr:OtherInstruction) =
+        match instr with
+        |DwInst dwI -> executeDeclareWordInstruction state dwI
+        |DcInst dcI -> executeDeclareConstantInstruction state dcI
+        |FInst fI -> executeFillMemoryInstruction state fI
