@@ -51,11 +51,11 @@ let cmEditor () =
     | _ -> failwithf "editor not initialised yet"
 
 
-(* 
+(****************************************************************
     Update part of MVC 
     -> Called every time the view throws an update action
     -> Returns new model as well as jsCalls that will be executed
-*)
+*****************************************************************)
 
 // REPLACE WITH THIS, AS SOON AS ERROR HANDLING IS IMPLEMENTED
 // let processOneLine s machineState =
@@ -96,13 +96,10 @@ let update model msg =
     model', jsCall
 
 
-(* 
+(****************************************************************
     View part of MVC
     -> This builds the whole HTML / DOM structure of the app
-*)
-//let inline onInput x = onEvent "oninput" (fun e -> x (unbox e?target?value)) 
-
-
+*****************************************************************)
 
 /// creates DOM for Buttons in Nav
 let buttonOnClick label cl func =
@@ -187,32 +184,34 @@ let header model =
                                 (model.Buttons |> List.map runButton)
                             div [](if model.ErrorMessage = "" then [] else [message model.ErrorMessage])
                         ]
-
                 ]
         ]
 
 
-let memorytable memory = 
 
-    let memoryline (address, value) =
-        tr []
-            [
-                th [attribute "scope" "row"] [text address]
-                td [][text "?"]
-                td [][text "?"]
-                td [][text "?"]
-                td [][text "?"]
-                td [][text value]
-            ]
-    
-    let convertAddressValue (name, value) =  name.ToString(), value.ToString()
-
-    memory
-    |> Map.toList
-    |> List.map(convertAddressValue >> memoryline)
 
 
 let memorywrapper memory =
+    let memorytable memory = 
+
+        let memoryline (address, value) =
+            tr []
+                [
+                    th [attribute "scope" "row"] [text address]
+                    td [][text "?"]
+                    td [][text "?"]
+                    td [][text "?"]
+                    td [][text "?"]
+                    td [][text value]
+                ]
+    
+        let convertAddressValue (name, value) =  name.ToString(), value.ToString()
+
+        memory
+        |> Map.toList
+        |> List.map(convertAddressValue >> memoryline)
+
+        
     table [attribute "class" "table"]
           [
               thead []
@@ -288,35 +287,14 @@ let listRegister machineState =
         | _ -> 100
 
     // get the registers, and extract name and value in sorted fashion
-    let registers = State.getRegisters machineState
-                    |> Map.toList 
-                    |> List.map( fun (ri, v) -> getUnionCaseName(ri), v.ToString() )
-                    |> List.sortBy sortRegisters
-                    |> List.map oneRegister
-
-    registers
-    // let matchSystemRegister key value = 
-    //     match key with
-    //     | Registers _ -> true
-    //     | _ -> false
-
-    // let convertSystemRegister = function
-    //     | (Registers name, RegisterValue value) -> getUnionCaseName(name), value.ToString()
-    //     | _ -> failwith "error parsing system register"
-
-    // let systemRegisters = State.getStatus machineState
-    //                       |> Map.filter matchSystemRegister
-    //                       |> Map.toList
-    //                       |> List.map (convertSystemRegister >> oneRegister)
-
-    // List.append registers systemRegisters
+    State.getRegisters machineState
+        |> Map.toList 
+        |> List.map( fun (ri, v) -> getUnionCaseName(ri), v.ToString() )
+        |> List.sortBy sortRegisters
+        |> List.map oneRegister
 
 
 /// Control Register DOM
-
-
-
-
 let statusBits machineState = 
                         
     let oneRegisterHorizontalWrapper (name, value) =
