@@ -27,13 +27,15 @@
    !-->
   <ItemGroup>
     <Compile Include="VSCodeProject/Machine.fs" />
+    <Compile Include="VSCodeProject/InstructionsCommonTypes.fs" />
     <Compile Include="VSCodeProject/ErrorHandler.fs" />
     <Compile Include="VSCodeProject/Instruction.fs" />
-    <Compile Include="VSCodeProject/Parser.fs" />
     <Compile Include="VSCodeProject/Functions.fs" />
     <Compile Include="VSCodeProject/CommonOperandFunctions.fs" />
+    <Compile Include="VSCodeProject/CommonParserFunctions.fs" />
     <Compile Include="VSCodeProject/ALU.fs" />
     <Compile Include="VSCodeProject/Memory.fs" />
+    <Compile Include="VSCodeProject/Branch.fs" />
     <Compile Include="VSCodeProject/Execution.fs" />
     <Compile Include="src/fs/CodeMirrorImports.fs" />
     <Compile Include="node_modules/fable-import-electron/Fable.Import.Electron.fs" />

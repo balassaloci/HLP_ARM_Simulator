@@ -1,7 +1,9 @@
 module ErrorHandler
 
 open Machine
-    
+
+exception CustomException of string
+
 /// List of all possible errors, add all cases here
 /// ADD YOUR ERRORS HERE
 type IError =
