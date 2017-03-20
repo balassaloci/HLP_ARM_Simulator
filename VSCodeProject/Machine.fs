@@ -136,7 +136,7 @@ module State =
     /// Initializes state
     /// Registers and Memory set to 0
     /// Status registers set to false    
-    let makeInitialState (instructions:array<'a>) = 
+    let makeInitialState (instructions:array<'a>) labels = 
         let regList = 
             [(R0,0); (R1,0); (R2,0); (R3,0); (R4,0); (R5,0); (R6,0); (R7,0); 
             (R8,0); (R9,0); (R10,0); (R11,0); (R12,0); (R13,0xFF000000); (LR,0);(PC,4)]
@@ -150,5 +150,5 @@ module State =
         Address = address;
         Status = Map.ofList initialStatus;
         Instructions = instructions;
-        Labels = Map.empty<string,int>;
+        Labels = labels;
         End = false} //change type to that of instructions

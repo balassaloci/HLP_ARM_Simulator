@@ -79,6 +79,27 @@ module Instruction =
         | ALUInst ai -> ALU.ALUInstruction.execute state ai
         | MemInst mi -> Memory.MemoryInstruction.execute state mi
         | BrInst bi -> Branch.BranchInstruction.execute state bi
+        | _ -> state //should never matched
+
+    let private executeSpecialInstr instrList state =
+        let executeSpecialOnce instr state =
+            match instr with
+            | OInstr oi -> Other.OtherInstruction.execute state oi
+            | _ -> state //should never match
+        let rec executeSpecialAll iList state =
+            match iList with
+            | h :: t ->
+                state
+                |> executeSpecialOnce h
+                |> executeSpecialAll t
+            | [] -> state
+        executeSpecialAll instrList state
+
+    let prepareState (text:string) =
+        let instructions,labels,specialInstr = ExecuteParser.parseAll text
+        let specialInstrList = List.ofArray specialInstr
+        State.makeInitialState instructions labels
+        |> executeSpecialInstr specialInstrList
 
     let runOnce state =
         let pcAddress = State.registerValue PC state
