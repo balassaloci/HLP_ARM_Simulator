@@ -6,12 +6,6 @@ type ConditionSuffix = | EQ | NE | CS | HS | CC | LO | MI | PL | VS | VC | HI
 
 type SetBit = | UpdateStatus | IgnoreStatus
 
-type Arithmetic = | ADD | SUB | ADC | SBC | RSC
-type Shift = | LSL | LSR | ASR | ROR | RRX
-type Compare = | CMP | CMN | TST | TEQ
-type Bitwise = | AND | EOR | BIC | ORR
-
-
 type RegOperand = RegisterIndex
 
 type MixedOperand = | Register of RegisterIndex | Literal of int
