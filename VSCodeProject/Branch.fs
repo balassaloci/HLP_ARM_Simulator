@@ -9,9 +9,9 @@ open ErrorHandler
 type Branch = | B | BL
 type End = | END
 
-type private EndInstruction = {opcode: End; cond: ConditionSuffix}
+type EndInstruction = {opcode: End; cond: ConditionSuffix}
 
-type private BranchInstruction = 
+type BranchInstruction = 
     {
         opcode: Branch;
         cond: ConditionSuffix;
@@ -19,12 +19,11 @@ type private BranchInstruction =
     }
 
 type ControlInstruction =
-    private
         | BInstr of BranchInstruction
         | EInstr of EndInstruction
 
 module BranchParser =
-    let parseLine line : BranchInstruction Maybe =
+    let parseLine line : ControlInstruction Maybe =
         maybe {
             let cleanLine = line |> decomment |> trimmer |> splitInstr
 
@@ -32,26 +31,27 @@ module BranchParser =
             let paramStr : string = snd cleanLine
             //let splitOper = splitOperands paramStr
 
-            let! instr = match instrStr with
-                            | Prefix "BL" r ->
-                                let scode = snd (getSCond r)
-                                let combined : BranchInstruction = {opcode = BL;
-                                                                    cond = scode;
-                                                                    label = paramStr}
+            let! instr =
+                match instrStr with
+                | Prefix "BL" r ->
+                    let scode = snd (getSCond r)
+                    let combined : BranchInstruction = {opcode = BL;
+                                                        cond = scode;
+                                                        label = paramStr}
 
-                                Success combined
+                    Success combined
 
-                            | Prefix "B" r ->
-                                let scode = snd (getSCond r)
-                                let combined : BranchInstruction = {opcode = B;
-                                                                    cond = scode;
-                                                                    label = paramStr}
+                | Prefix "B" r ->
+                    let scode = snd (getSCond r)
+                    let combined : BranchInstruction = {opcode = B;
+                                                        cond = scode;
+                                                        label = paramStr}
 
-                                Success combined
-                            //| Prefix "B" r -> Error
-                            | _ ->  Error <| (ParseError "Unable to parse branch instruction")
+                    Success (combined)
+                //| Prefix "B" r -> Error
+                | _ ->  Error <| (ParseError "Unable to parse branch instruction")
                         
-            return instr
+            return instr |> BInstr
 
         }
        
@@ -62,7 +62,7 @@ module ControlInstruction =
     //let private branchLabel () = failwithf "Not implemented"
     open BranchParser
 
-    let parse: string -> BranchInstruction =
+    let parse: string -> ControlInstruction =
         fun x-> match parseLine x with
                 | Success t -> t
                 | Error x -> failwithf "%A" x

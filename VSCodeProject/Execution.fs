@@ -11,7 +11,7 @@ open CommonParserFunctions
 type Instruction =
     | ALUInst of ALU.ALUInstruction
     | MemInst of Memory.MemoryInstruction
-    | BrInst of Branch.BranchInstruction
+    | CrInst of Branch.ControlInstruction
     | OInstr of Other.OtherInstruction
 
 module ExecuteParser =
@@ -29,7 +29,7 @@ module ExecuteParser =
                 | _ -> failwithf "Unable to parse instruction"
             else
                 match instrS with
-                | Prefix "B" _ -> BrInst <| BranchInstruction.parse instrS
+                | Prefix "B" _ -> CrInst <| ControlInstruction.parse instrS
                 | _ -> failwithf "Unable to parse instruction"
         try
             None, parseInstruction (instrS)
@@ -77,7 +77,7 @@ module Instruction =
         match instruction with
         | ALUInst ai -> ALU.ALUInstruction.execute state ai
         | MemInst mi -> Memory.MemoryInstruction.execute state mi
-        | BrInst bi -> Branch.BranchInstruction.execute state bi
+        | CrInst bi -> Branch.ControlInstruction.execute state bi
         | _ -> state //should never matched
 
     let private executeSpecialInstr instrList state =

@@ -9,10 +9,6 @@ open ErrorHandler
 // TODO: the link shows something really weird
 //     http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0552a/CIHDDCIF.html
 
-type private Arithmetic = | ADD | SUB | ADC | SBC | RSC
-type private Shift = | LSL | LSR | ASR | ROR | RRX
-type private Compare = | CMP | CMN | TST | TEQ
-type private Bitwise = | AND | EOR | BIC | ORR
 
 type private 'T ALUOpCode = {opcode:'T; setBit:SetBit;
                              condSuffix:ConditionSuffix}

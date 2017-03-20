@@ -14,6 +14,12 @@ let decomment (s:string) =
 // Removes whitespace 
 let trimmer (s:string) = s.Trim().ToUpper()
 
+//type System.String with
+//    member this.Clean = function
+//        | x::xn -> this.Replace x
+
+//        this.Chars(this.Length - 1)
+
 // Split the instruction from the rest (params)
 let splitInstr (s:string) : (string * string) =
         let parts = s.Split([|' '|], 2, System.StringSplitOptions.RemoveEmptyEntries)
@@ -76,7 +82,9 @@ let getRegIndex (r:string) =
     // These are registers but not addressable by user 
     | "CSPR" | "LR" | "PC" | _ -> failwith "Invalid register address"
 
-let getCond : string -> ConditionSuffix = function
+let getCond x =
+    //printfn "getting cond suffix %A" x
+    match x with
     | "EQ" -> EQ
     | "NE" -> NE
     | "CS" -> CS
@@ -94,7 +102,7 @@ let getCond : string -> ConditionSuffix = function
     | "GT" -> GT
     | "LE" -> LE
     | "" | "AL" ->  AL
-    | _  -> failwithf "Invalid condition code" // + cond
+    | _  -> failwithf "Invalid condition code: %A" x
     
 let getSCond = function
     | Prefix "S" cond -> UpdateStatus, getCond cond
@@ -129,7 +137,6 @@ let getALUInstruction instruction =
     | _ -> Error <| ParseError ("Unrecognized ALU instruction " + instruction)
 
 
-
 let parseShift shift =
     match shift with
     | "LSL" -> LSL
@@ -142,7 +149,7 @@ let parseShift shift =
 let parseMixedOp (op: string) =
     match op.Trim() with
     | Prefix "#" rest -> Literal (parseLiteral rest)
-    | reg -> Register (reg |> getRegIndex)       
+    | reg -> Register (reg |> getRegIndex)
 
 let parseExecOperand (op: string) (rest: string list) =
     let trimmed (s:string) = s.Trim()

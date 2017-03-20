@@ -4,6 +4,12 @@ open Machine
 type ConditionSuffix = | EQ | NE | CS | HS | CC | LO | MI | PL | VS | VC | HI
                        | LS | GE | LT | GT | LE | AL
 
+
+type Arithmetic = | ADD | SUB | ADC | SBC | RSC
+type Compare = | CMP | CMN | TST | TEQ
+type Bitwise = | AND | EOR | BIC | ORR
+type Shift = | LSL | LSR | ASR | ROR | RRX
+
 type SetBit = | UpdateStatus | IgnoreStatus
 
 type RegOperand = RegisterIndex
