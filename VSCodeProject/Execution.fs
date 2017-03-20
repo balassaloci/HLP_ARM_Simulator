@@ -25,5 +25,6 @@ module Instruction =
     let run state =
         let pcAddress = State.registerValue PC state
         let inst = State.getInstruction pcAddress state
-        execute state inst
+        let newState = State.incrementPC state
+        execute newState inst
     
