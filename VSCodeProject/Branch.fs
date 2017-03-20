@@ -6,14 +6,22 @@ open CommonOperandFunctions
 open CommonParserFunctions
 open ErrorHandler
 
-type Branch = B | BL
+type Branch = | B | BL
+type End = | END
 
-type BranchInstruction = 
-    private{
+type private EndInstruction = {opcode: End; cond: ConditionSuffix}
+
+type private BranchInstruction = 
+    {
         opcode: Branch;
         cond: ConditionSuffix;
         label: string;
     }
+
+type ControlInstruction =
+    private
+        | BInstr of BranchInstruction
+        | CInstr of EndInstruction
 
 module BranchParser =
     let parseLine line : BranchInstruction Maybe =
@@ -50,7 +58,7 @@ module BranchParser =
     
 [<RequireQualifiedAccess; 
 CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
-module BranchInstruction =
+module ControlInstruction =
     //let private branchLabel () = failwithf "Not implemented"
     open BranchParser
 
@@ -59,21 +67,32 @@ module BranchInstruction =
                 | Success t -> t
                 | Error x -> failwithf "%A" x
 
-    let private executebranch (label:string) state = 
+    let private executeBranch (label:string) state = 
         let nextInstructionAddress = State.getLabelAddress label state
         State.updateSystemRegister PC nextInstructionAddress state
 
-    let private executebranchWithLink (label:string) state =
+    let private executeBranchWithLink (label:string) state =
         let nextInstructionAddress = State.getLabelAddress label state
         let originalPCAddress = State.systemRegisterValue PC state
         state |> State.updateSystemRegister LR originalPCAddress 
             |> State.updateSystemRegister PC nextInstructionAddress
 
-    let execute state (instr:BranchInstruction) = 
+    let private executeBranchInstruction state (instr:BranchInstruction) = 
         let {opcode = core; cond = c; label = l} = instr;
         if conditionHolds state c then
             match core with
-            | B -> executebranch l state
-            | BL -> executebranchWithLink l state
+            | B -> executeBranch l state
+            | BL -> executeBranchWithLink l state
         else
             state
+    
+    let private executeEndInstruction state (instr:EndInstruction) =
+        let cond = instr.cond
+        if conditionHolds state cond then
+            State.endExecution state
+        else state
+    
+    let execute state (instr: ControlInstruction) =
+        match instr with
+        |BInstr bi -> executeBranchInstruction state bi
+        |CInstr ci -> executeEndInstruction state ci
