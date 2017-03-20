@@ -58,7 +58,8 @@ let parseLiteral a =
 
     match a with
     | Prefix "&" rest | Prefix "0X" rest -> hexStringToInt rest
-    | s -> s |> int
+    | s when isNumeric s -> s |> int
+    | _ -> failwith "Unable to parse literal"
 
 
 //Parses the register index (or fails)

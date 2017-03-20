@@ -113,22 +113,6 @@ module MemoryParser =
                    x :: fst v, snd v
         | _ -> failwith "Unable to parse address method"
 
-    let unwrapReglist regs =
-        let rec fixEnd = function
-            | (x:string)::[] -> 
-                if x.EndsWith "}" then [x.[..x.Length - 2]]
-                else failwith "Missing '}' from register range"
-            | x :: xn -> x :: fixEnd xn
-            | _ -> failwith "Unable to parse"
-        
-        let fixStart (x:string list) =
-            let x1 = x.Head
-            if x1.StartsWith "{" then
-                x1.[1..] :: x.Tail
-            else
-                failwith "Missing '{' from register range"
-        
-        regs |> fixStart |> fixEnd
 
     let rec getMReg = function
         | (x:string)::xn ->
@@ -143,7 +127,25 @@ module MemoryParser =
             else
                 getRegIndex (x |> trimmer) :: getMReg xn
         | [] -> []
-    
+
+    let unwrapReglist regs =
+        let rec fixEnd = function
+            | (x:string)::[] -> 
+                if x.EndsWith "}" then [x.[..x.Length - 2]]
+                else failwith "Missing '}' from register range"
+            | x :: xn -> x :: fixEnd xn
+            | _ -> failwith "Unable to parse"
+        
+        let fixStart (x:string list) =
+            let x1 = x.Head.Trim()
+            if x1.StartsWith "{" then
+                x1.[1..] :: x.Tail
+            else
+                failwith "Missing '{' from register range"
+        
+        regs |> fixStart |> fixEnd |> getMReg
+
+
     let getMemoryInstruction instruction =
         match instruction with
         | "MOV" -> MoveInstructionT MOV
@@ -230,14 +232,53 @@ module MemoryParser =
     let parseMultipleMemoryInstruction (i:MultipleMemory) (instrStr:string)
                                                     (splitOper:string list) =
         let condUpMode = getCondUpmode instrStr.[3..]
-        let ops = unwrapReglist splitOper
-        let mreg = getMReg ops
+        //printfn "condUpMode %A" splitOper.Head
 
-        printfn "%A" mreg
-        1
+        let op1 = splitOper.Head |> getRegIndex
+        //printfn "op1 %A" splitOper.Tail
 
+        let op2 = unwrapReglist splitOper.Tail
+        //printfn "op2"
 
-        
+        let opcode : MultipleMemoryOpCode = {opcode = i;
+                                             mode = snd condUpMode;
+                                             condSuffix = fst condUpMode}
+
+        let operands : MultipleMemoryOperands = {op1 = op1; op2 = op2}
+        let instr : MultipleMemoryInstr = {operation = opcode;
+                                            operands = operands}
+
+        instr |> MuInst
+
+    let private parseADR (i:MemoryAddress) (instrStr:string) splitOper =
+        printfn "%A" splitOper
+        match splitOper with
+        | op1S :: op2S :: [] ->
+            let scode = getSCond instrStr.[3..]
+            printfn "scode done"
+
+            let op1 = op1S |> getRegIndex
+
+            printfn "reg1 done"
+            let op2 : AddressExpression =
+                try
+                   // Number <| parseLiteral <| op2S
+                   let a = parseLiteral <| op2S.Trim()
+                   Number <| a
+                with
+                | _ -> Label <| op2S.Trim()
+
+            //let isNumeric a = fst (System.Int32.TryParse(a))
+            //let parseLiteral a =
+            printfn "reg2 done"
+            //
+            //let op2 : ExecOperand = parseExecOperand op2S restS
+            let opcode : LoadAddressOpCode = {opcode = i; mode = fst scode; condSuffix = snd scode}
+            let operands : LoadAddressOperands = {dest = op1; exp = op2}
+            let instr : LoadAddressInstr =  {operation = opcode; operands = operands}
+            instr |> LInst
+        | _ ->  printfn "adr instruction failed"
+                failwithf "Unable to parse move instruction: "
 
     let parseLine line =
         maybe {
@@ -251,6 +292,8 @@ module MemoryParser =
                 match instr with
                 | MoveInstructionT i -> parseMoveInstruction i instrStr splitOper
                 | SingleMemoryT i -> parseSingleMemoryInstruction i instrStr splitOper
+                | MultipleMemoryT i -> parseMultipleMemoryInstruction i instrStr splitOper
+                | MemoryAddressT i -> parseADR i instrStr splitOper
                 | _ -> failwith "Not implemented yet"
 
             return operands
