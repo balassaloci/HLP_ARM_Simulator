@@ -5,6 +5,10 @@ open InstructionsCommonTypes
 open ErrorHandler
 //let fstL l = match l with | x::xn -> x | x -> x
 
+type System.String with
+    member this.Last =
+        this.Chars(this.Length - 1)
+
 // Remove comments from end of line
 let decomment (s:string) =
     match s.Split([|';'; '@'|], 2) with
@@ -80,36 +84,33 @@ let getRegIndex (r:string) =
     // These are registers but not addressable by user 
     | "CSPR" | "LR" | "PC" | _ -> failwith "Invalid register address"
 
-let getSCond scond =
-    let matchCond cond =
-        match cond with
-        | "EQ" -> EQ
-        | "NE" -> NE
-        | "CS" -> CS
-        | "HS" -> HS
-        | "CC" -> CC
-        | "LO" -> LO
-        | "MI" -> MI
-        | "PL" -> PL
-        | "VS" -> VS
-        | "VC" -> VC
-        | "HI" -> HI
-        | "LS" -> LS
-        | "GE" -> GE
-        | "LT" -> LT
-        | "GT" -> GT
-        | "LE" -> LE
-        | "" | "AL" ->  AL
-        | _  -> failwithf "Invalid condition code" // + cond
+let matchCond cond =
+    match cond with
+    | "EQ" -> EQ
+    | "NE" -> NE
+    | "CS" -> CS
+    | "HS" -> HS
+    | "CC" -> CC
+    | "LO" -> LO
+    | "MI" -> MI
+    | "PL" -> PL
+    | "VS" -> VS
+    | "VC" -> VC
+    | "HI" -> HI
+    | "LS" -> LS
+    | "GE" -> GE
+    | "LT" -> LT
+    | "GT" -> GT
+    | "LE" -> LE
+    | "" | "AL" ->  AL
+    | _  -> failwithf "Invalid condition code" // + cond
     
-    //let maybeUpdate statusFlag cond =
-    //    match matchCond cond wit
-    //    | Some x -> Some (statusFlag, x)
-    //    | None -> None
-
+let getSCond scond =
     match scond with
     | Prefix "S" cond -> UpdateStatus, matchCond cond
     | cond -> IgnoreStatus, matchCond cond
+
+
 
 type ALUInstructionType =
     | ArithmeticInstructionT of Arithmetic

@@ -58,6 +58,26 @@ module MemoryParser =
         | MultipleMemoryT of MultipleMemory
         | MemoryAddressT of MemoryAddress
 
+    
+    let getCondB (condb:string) =
+        let getMemoryMode (b:char) =
+            match b with
+            | 'B' -> Byte
+            | ' ' -> Word
+            | _ -> failwithf ("Unable to parse condition code")
+        
+        
+        //if condb.Length > 1 then
+        //    (matchCond condb.[..condb.Length - 2]), (getMemoryMode condb.Last)
+
+        //else
+        //   AL, getCondB(condb.Last)
+        1
+
+        //match condb with
+        //| Prefix x "B" -> 0
+        //| _ -> 0
+
     let getMemoryInstruction instruction =
         match instruction with
         | "MOV" -> MoveInstructionT MOV
