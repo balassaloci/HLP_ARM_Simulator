@@ -8,7 +8,6 @@ open Branch
 open Other
 open CommonParserFunctions
 
-
 type Instruction =
     | ALUInst of ALU.ALUInstruction
     | MemInst of Memory.MemoryInstruction

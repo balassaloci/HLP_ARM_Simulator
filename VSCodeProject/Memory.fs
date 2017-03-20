@@ -58,6 +58,7 @@ module MemoryParser =
         | MultipleMemoryT of MultipleMemory
         | MemoryAddressT of MemoryAddress
 
+
     let getMemoryInstruction instruction =
         match instruction with
         | "MOV" -> MoveInstructionT MOV
@@ -76,7 +77,6 @@ module MemoryParser =
             let op2 : ExecOperand = parseExecOperand op2S restS
             let opcode : MoveOpCode = {opcode = i; mode = fst scode; condSuffix = snd scode}
             let operands : MoveOperands = {dest = op1; op1 = op2}
-
             let instr : MemoryInstruction = MvInst {operation = opcode; operands = operands}
             instr
 
