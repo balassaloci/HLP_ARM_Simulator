@@ -18,7 +18,9 @@ type OtherInstruction =
 [<RequireQualifiedAccess; 
 CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
 module OtherInstruction =
-
+    let parse instrS =
+        failwith "Not implemented"
+        
     let rec private declareWords state address wList =
         match wList with
         | h::t -> 

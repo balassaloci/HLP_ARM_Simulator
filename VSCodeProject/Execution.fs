@@ -5,12 +5,15 @@ open InstructionsCommonTypes
 open ALU
 open Memory
 open Branch
+open Other
 open CommonParserFunctions
+
 
 type Instruction =
     | ALUInst of ALU.ALUInstruction
     | MemInst of Memory.MemoryInstruction
     | BrInst of Branch.BranchInstruction
+    | OInstr of Other.OtherInstruction
 
 let parseLine (instrS: string) :  (string Option * Instruction) =
     let parseInstruction (instrS: string) : Instruction =
@@ -22,6 +25,8 @@ let parseLine (instrS: string) :  (string Option * Instruction) =
                 | "EOR" | "BIC" | "ORR" -> ALUInst <| ALUInstruction.parse instrS
             | "MOV" | "MVN" | "LDR" | "STR" | "LDM"
                 | "STM" | "ADR" -> MemInst <| MemoryInstruction.parse instrS
+            | "DCD" | "DCB" | "EQU" | "FILL" -> OInstr <| OtherInstruction.parse instrS
+            | _ -> failwithf "Unable to parse instruction"
         else
             match instrS with
             | Prefix "B" _ -> BrInst <| BranchInstruction.parse instrS
@@ -33,9 +38,34 @@ let parseLine (instrS: string) :  (string Option * Instruction) =
            | l, i -> Some (l), parseInstruction i
 
 let parseAll (txt: string) =
-    1
+    let lines = txt.Split([|'\n'; '\r'|], System.StringSplitOptions.RemoveEmptyEntries)
+                |> Array.toList
 
+    let rec matchLines lines (memInstr: Instruction array)
+                             (labels:Map<string, int>)
+                             (firstInstr: Instruction array) =
+        match lines with
+        | x::xn -> 
+            let parsed = parseLine x
+            let labels' =
+               match fst parsed with
+               | Some l -> labels.Add(l, memInstr.Length * 4)
+               | _ -> labels
+            let newInstrs =
+                match snd parsed with
+                | OInstr i -> memInstr, (Array.append firstInstr [|snd parsed|])
+                | _ -> (Array.append memInstr [|snd parsed|]), firstInstr
 
+            let memInstr' = fst newInstrs
+            let firstInstr' = snd newInstrs
+
+            matchLines xn memInstr' labels' firstInstr'
+        | [] -> memInstr, labels, firstInstr
+
+    let emptyMap : Map<string, int>= Map.empty
+    let emptyIArr = Array.empty
+
+    matchLines lines emptyIArr emptyMap emptyIArr
 
 [<RequireQualifiedAccess; 
 CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
