@@ -1,7 +1,6 @@
 module CommonParserFunctions
 open InstructionsCommonTypes
 open Machine
-open InstructionsCommonTypes
 open ErrorHandler
 //let fstL l = match l with | x::xn -> x | x -> x
 
