@@ -70,8 +70,6 @@ let parseAndRun str state =
             | None -> failwithf "no!"
     str |> ParseText |> List.map optionGetter |> executeALUInstructionList state
 
-// TODO: ability to reset machinestate
-//       error handling!!
 let update model msg =
 
     let model' =
@@ -211,7 +209,7 @@ let memorywrapper memory =
         |> Map.toList
         |> List.map(convertAddressValue >> memoryline)
 
-        
+
     table [attribute "class" "table"]
           [
               thead []
