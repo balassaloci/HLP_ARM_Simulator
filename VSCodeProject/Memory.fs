@@ -74,24 +74,29 @@ module MemoryParser =
         | "DB" -> DB
         | _ -> failwith "Unable to parse update mode"
 
-    let getCondB (condBS:string) =
-        //printfn "getCondB %A" condBS
+    //let getCondB (condBS:string) =
+    //    //printfn "getCondB %A" condBS
 
-        match condBS.Length with
-        | 1 -> AL, getMemoryMode condBS
-        | 2 -> getCond condBS, getMemoryMode ""
-        | 3 -> //printfn "branch 3: %A" condBS.[..1]
-               let c = getCond condBS.[..1]
-               //printfn "gOther c"
-               let c' = getMemoryMode condBS.[2..2]
-               //printfn "got c'"
-               getCond condBS.[..1], getMemoryMode condBS.[2..2]
-        | _ -> failwith "Invalid condition code"
+    //    match condBS.Length with
+    //    | 1 -> AL, getMemoryMode condBS
+    //    | 2 -> getCond condBS, getMemoryMode ""
+    //    | 3 -> //printfn "branch 3: %A" condBS.[..1]
+    //           let c = getCond condBS.[..1]
+    //           //printfn "gOther c"
+    //           let c' = getMemoryMode condBS.[2..2]
+    //           //printfn "got c'"
+    //           getCond condBS.[..1], getMemoryMode condBS.[2..2]
+    //    | _ -> failwith "Invalid condition code"
+    
+    
+    let getBCond = function
+        | Prefix "B" cond -> Byte, getCond cond
+        | cond -> Word, getCond cond
 
     let getCondUpmode (condUM:string) =
         match condUM.Length with
         | 2 -> AL, getUpdateMode condUM
-        | 4 -> (getCond condUM.[..1]), (getUpdateMode condUM.[2..3])
+        | 4 -> (getCond condUM.[2..3]), (getUpdateMode condUM.[..1])
         | _ -> failwith "Invalid condition or update mode for memory instruction"
 
     //let remOpenSquareBrkt ( = function
@@ -163,6 +168,7 @@ module MemoryParser =
             let scode = getSCond instrStr.[3..] 
             let op1 = op1S |> getRegIndex
             let op2 : ExecOperand = parseExecOperand op2S restS
+            printfn "%A" op2
             let opcode : MoveOpCode = {opcode = i; mode = fst scode; condSuffix = snd scode}
             let operands : MoveOperands = {dest = op1; op1 = op2}
             let instr : MemoryInstruction = MvInst {operation = opcode; operands = operands}
@@ -172,9 +178,11 @@ module MemoryParser =
     
     let parseSingleMemoryInstruction (i:SingleMemory) (instrStr:string) (splitOper:string list) =
         //printfn "Parsing single memory instruction"
-        let conds = if instrStr.Length > 3 then
-                        getCondB instrStr.[3..]
-                    else AL, getMemoryMode ""
+        let conds = getBCond instrStr.[3..]
+                    //if instrStr.Length > 3 then
+                    //    getCondB instrStr.[3..]
+
+                    //else AL, getMemoryMode ""
 
         //printfn "Cond code done"
         let op1 : RegOperand = splitOper.Head |> getRegIndex
@@ -214,7 +222,7 @@ module MemoryParser =
             {op1 = op1; op2 = op2; method = aMethod; offset = offset}
         
         let opCode : SingleMemoryOpCode =
-            {opcode = i; mode = snd conds; condSuffix = fst conds}
+            {opcode = i; mode = fst conds; condSuffix = snd conds}
        
         let instruction : SingleMemoryInstr =
             {operation = opCode; operands = operands}

@@ -109,6 +109,7 @@ let getSCond = function
     | Prefix "S" cond -> UpdateStatus, getCond cond
     | cond -> IgnoreStatus, getCond cond
 
+
 type ALUInstructionType =
     | ArithmeticInstructionT of Arithmetic
     | ShiftInstructionT of Shift
