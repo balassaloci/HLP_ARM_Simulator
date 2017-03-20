@@ -79,9 +79,17 @@ module Instruction =
         | MemInst mi -> Memory.MemoryInstruction.execute state mi
         | BrInst bi -> Branch.BranchInstruction.execute state bi
 
-    let run state =
+    let runOnce state =
         let pcAddress = State.registerValue PC state
-        let inst = State.getInstruction pcAddress state
-        let newState = State.incrementPC state
-        execute newState inst
-    
+        let instr = State.getInstruction pcAddress state
+        if instr.IsSome then
+            execute state instr.Value
+            |> State.incrementPC
+        else
+            State.endExecution state
+
+    let rec runAll state =
+        if State.checkEndExecution state then
+            state
+        else
+            state |> runOnce |> runAll

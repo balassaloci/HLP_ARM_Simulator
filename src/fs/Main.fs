@@ -12,20 +12,22 @@ open Fable.Core.JsInterop
 open App.CodeMirrorInterface
 
 open Machine
-open Parser
-open Execution
 open ErrorHandler
+open Execution
+open ALU
 
 // union name
 open Microsoft.FSharp.Reflection
 
 type Buttonstate = BRunAll | BRunStep | BReset | BResetUnsuccessful
+type IRunState = Init | Running
 
 /// wrapped in model since maybe more elements will follow
 type Model =
     {
-        MachineState: State
+        MachineState: State<Instruction>
         Buttons: Buttonstate list
+        Runstate: IRunState
         ErrorMessage: string
     }
 
@@ -64,22 +66,45 @@ let cmEditor () =
 //         let! executed = Execution.executeALUInstructionList machineState
 //         return executed
 //     }
-let parseAndRun str state =
-    let optionGetter = function
-            | Some x -> x
-            | None -> failwithf "no!"
-    str |> ParseText |> List.map optionGetter |> executeALUInstructionList state
+// let parseAndRun str state =
+//     let optionGetter = function
+//             | Some x -> x
+//             | None -> failwithf "no!"
+//     str |> ParseText |> List.map optionGetter |> executeALUInstructionList state
+
+
+
+//let runOnce
+
+
 
 let update model msg =
-
+    let parseAndPrepare (str:string) =
+        // split text to array 
+        let instrArr = str.Split('\n')
+        let instructions = Array.map (ALUInstruction.parse >> Execution.ALUInst) instrArr
+        State.makeInitialState instructions
+        
+    let runOnce once s =
+        try
+            let initState = s |> parseAndPrepare
+            match once with 
+            | true -> {model with MachineState = Instruction.runOnce initState; Runstate = Running} // TODO reset at last
+            | false -> {model with MachineState = Instruction.runAll initState; Runstate = Init} // TODO change
+        with
+            | Exception(msg) -> {model with ErrorMessage = msg; Runstate = Init}
+    
     let model' =
         match msg with
-        | Run s -> let resetState = State.makeInitialState()
-                   {model with MachineState = parseAndRun s resetState}
-        | RunOne s -> {model with MachineState = parseAndRun s model.MachineState}             // TODO: only advance, not parse
+        | Run s -> runOnce false s
+        | RunOne s when model.Runstate = Init -> runOnce true s
+        | RunOne _ -> //try 
+                        {model with MachineState = Instruction.runOnce model.MachineState}
+                      //with
+                      //  | Failure(msg) -> {model with ErrorMessage = msg; Runstate = Init}
         | Reset -> let defaultButtonState = [BRunAll; BRunStep; BReset]
-                   let resetState = State.makeInitialState()
-                   {model with Buttons = defaultButtonState; MachineState = resetState}
+                   let resetState = State.makeInitialState [||]
+                   {model with Buttons = defaultButtonState; MachineState = resetState; Runstate = Init}
         | ErrorMessage msg -> {model with ErrorMessage = msg}
         | _ ->  model 
 
@@ -349,11 +374,11 @@ let view model =
 let main () =
 
     printfn "Starting..."
-    let initMachineState = State.makeInitialState()
+    let initMachineState = State.makeInitialState [||]
 
     printfn "Creating state"
     let initButtons = [BRunAll; BRunStep; BReset]
-    let initModel = {MachineState = initMachineState; Buttons = initButtons; ErrorMessage = "alert"}
+    let initModel = {MachineState = initMachineState; Buttons = initButtons; Runstate = Init; ErrorMessage = "alert"}
 
     createApp initModel view update Virtualdom.createRender
     |> withStartNodeSelector "#app"
