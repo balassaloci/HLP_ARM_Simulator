@@ -19,7 +19,8 @@ let mixedOperandValue op state =
 /// after shifting the operand.
 let execOperandValue op state =
     /// Returns true if there exists an 8 LSB bit rotation of this number
-    let is8bitRotated x =
+    let is8bitRotated x' =
+        let x = if x' < 0 then -x' else x'
         let shifts = [1..32]
         let rotateRight' x r = (rotateRight x r).body
         /// Returns true if given rotation fits in 8LSBs

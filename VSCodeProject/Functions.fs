@@ -127,7 +127,7 @@ let checkZero result state =
     let flag = result = 0L
     State.updateStatusBit Z flag state
     
-let updateArithmeticCSPR state result addition =
+let updateArithmeticCSPR state (result:int64) addition =
     let result1 = int64 <| int32 result
     state
     |> checkZero result1
