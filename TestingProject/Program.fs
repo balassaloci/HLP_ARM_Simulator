@@ -135,15 +135,17 @@ module Program=
 
     let runSimulators instr =
         let visualResult = (RunVisualWithFlagsOutLocs [0;1;2;3] instr)
-        let visualFlags, visualRegisters = match visualResult with | (f, r) -> (f, List.map (fun (a,b) -> (a,b)) (Map.toList r))
 
-//        let visualRegisters = State.getRegisters ourResultMachineState |> Map.toList |> List.map (fun (a,b) -> mapToVisualReg a, b )
-//        let visualFlags = mapToVisualFlags <| State.getStatus ourResultMachineState
 
         let ourResultMachineState = Instruction.prepareState instr |> Instruction.runAll
 
         let ourRegisters = State.getRegisters ourResultMachineState |> Map.toList |> List.map (fun (a,b) -> mapToVisualReg a, b )
         let ourFlags = mapToVisualFlags <| State.getStatus ourResultMachineState
+
+        let visualFlags, visualRegisters = match visualResult with | (f, r) -> (f, List.map (fun (a,b) -> (a,b)) (Map.toList r))
+
+//        let visualRegisters = State.getRegisters ourResultMachineState |> Map.toList |> List.map (fun (a,b) -> mapToVisualReg a, b )
+//        let visualFlags = mapToVisualFlags <| State.getStatus ourResultMachineState
 
         ourFlags, ourRegisters, visualFlags, visualRegisters
 
