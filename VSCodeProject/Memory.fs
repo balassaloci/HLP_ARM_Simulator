@@ -116,7 +116,8 @@ module MemoryParser =
                             else [x], PostIndexed
         | x::xn -> let v = getAddressMethod xn
                    x :: fst v, snd v
-        | _ -> failwith "Unable to parse address method"
+        | x ->  printfn "getAddressMethod failing %A" x
+                failwith "Unable to parse address method"
 
 
     let rec getMReg = function
@@ -177,29 +178,29 @@ module MemoryParser =
         | _ -> failwithf "Unable to parse move instruction: "
     
     let parseSingleMemoryInstruction (i:SingleMemory) (instrStr:string) (splitOper:string list) =
-        //printfn "Parsing single memory instruction"
+        printfn "Parsing single memory instruction"
         let conds = getBCond instrStr.[3..]
                     //if instrStr.Length > 3 then
                     //    getCondB instrStr.[3..]
 
                     //else AL, getMemoryMode ""
 
-        //printfn "Cond code done"
+        printfn "Cond code done"
         let op1 : RegOperand = splitOper.Head |> getRegIndex
-        //printfn "Op1 done"
+        printfn "Op1 done"
         let split' = splitOper.Tail
-        //printfn "split' done"
+        printfn "split' done"
         let op2'  = split'.Head |> trimmer |> remOpenSquareBrkt
-        //printfn "remOpenS done"
+        printfn "remOpenS done"
         let op2 = snd (optRemEnd op2' "]") |> getRegIndex
-        //printfn "Op2 done"
+        printfn "Op2 done %A" split'.Tail
 
         let cleanAddrMethod = getAddressMethod (split'.Tail)
-        //printfn "CleanAddrMethod done"
+        printfn "CleanAddrMethod done"
         let aMethod = snd cleanAddrMethod
         let cleanOps:string list = fst cleanAddrMethod
         let offset = parseExecOperand cleanOps.Head cleanOps.Tail
-        //printfn "parseExecOperand done"
+        printfn "parseExecOperand done"
 
         //let op2Method = optRemEnd op2' "]"
         //let aMethod:AddressingMethod =

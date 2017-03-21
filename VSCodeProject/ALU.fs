@@ -41,7 +41,6 @@ type ALUInstruction =
         | CInst of CompareInstr
         | BInst of BitwiseInstr
 
-
 module ALUParser =
 
     let private parseArithmeticOperands (ops: string list) =

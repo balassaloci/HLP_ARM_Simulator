@@ -14,12 +14,6 @@ let decomment (s:string) =
 // Removes whitespace 
 let trimmer (s:string) = s.Trim().ToUpper()
 
-//type System.String with
-//    member this.Clean = function
-//        | x::xn -> this.Replace x
-
-//        this.Chars(this.Length - 1)
-
 // Split the instruction from the rest (params)
 let splitInstr (s:string) : (string * string) =
         let parts = s.Split([|' '|], 2, System.StringSplitOptions.RemoveEmptyEntries)

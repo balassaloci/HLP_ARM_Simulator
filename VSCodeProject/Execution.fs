@@ -25,8 +25,8 @@ module ExecuteParser =
                     | "EOR" | "BIC" | "ORR" -> ALUInst <| ALUInstruction.parse instrS
                 | "MOV" | "MVN" | "LDR" | "STR" | "LDM"
                     | "STM" | "ADR" -> MemInst <| MemoryInstruction.parse instrS
-                | "DCD" | "DCB" | "EQU" | "FILL" -> OInstr <| OtherInstruction.parse instrS
-                | _ -> failwithf "Unable to parse instruction"
+                | x -> OInstr <| OtherInstruction.parse instrS
+//                | _ -> failwithf "Unable to parse instruction"
             else
                 match instrS with
                 | Prefix "B" _ -> CrInst <| ControlInstruction.parse instrS
@@ -47,6 +47,7 @@ module ExecuteParser =
             match lines with
             | x::xn -> 
                 let parsed = parseLine x
+                printfn "parseLine finished yo"
                 let labels' =
                    match fst parsed with
                    | Some l -> labels.Add(l, memInstr.Length * 4)

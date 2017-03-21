@@ -1,5 +1,6 @@
 module Other
 open Machine
+open CommonParserFunctions
 
 type DeclareWord = | DCD | DCB
 type DeclareConstant = | EQU
@@ -11,15 +12,84 @@ type private FillMemoryInstr = {opcode:FillMemory; label: option<string>; op1:in
 
 type OtherInstruction =
     private 
-        |DwInst of DeclareWordInstr
-        |DcInst of DeclareConstantInstr
-        |FInst of FillMemoryInstr
+        | DwInst of DeclareWordInstr
+        | DcInst of DeclareConstantInstr
+        | FInst of FillMemoryInstr
 
-[<RequireQualifiedAccess; 
+module OtherParser =
+
+    //let getMemoryInstruction instruction =
+    //    match instruction with
+    //    | "MOV" -> MoveInstructionT MOV
+    //    | "MVN" -> MoveInstructionT MVN
+    //    | "LDR" -> SingleMemoryT LDR
+    //    | "STR" -> SingleMemoryT STR
+    //    | "LDM" -> MultipleMemoryT LDM
+    //    | "STM" -> MultipleMemoryT STM
+    //    | "ADR" -> MemoryAddressT ADR
+    //    | _ -> failwithf "Unable to parse memory instruction %A" instruction
+
+
+
+    let parseLine (line:string) =
+        printfn "Parsing other instruction %A" line
+        let cleanLine = line |> decomment |> trimmer |> splitInstr
+        printfn "cleanline done"
+        let label = fst cleanLine
+        printfn "label done %A" label
+        let instruction = snd cleanLine |> splitInstr
+        printfn "instruction split done %A" instruction
+        let opcode' : string = fst instruction
+        printfn "opcode split but not parsed %A" opcode'
+        let prms = snd instruction |> splitOperands
+        printf "params %A" prms
+
+
+        printfn "Parsing stuff based on opcode %A" opcode'
+
+        failwithf "sorry, unable to parse based on opcode"
+
+        match opcode' with
+        | "DCD" | "DCB" ->
+            failwith "DCD?DCB branch open"
+
+            let op1s = List.map parseLiteral prms
+            printfn "op1s parsed %A" op1s
+
+            let opcode =
+                match opcode' with
+                | "DCD" -> DCD
+                | "DCB" -> DCB
+            
+            printfn "opcode parsed %A" opcode
+            let instr : DeclareWordInstr = {opcode = opcode;
+                                            label=label;
+                                            op1=op1s}
+
+            printfn "Parsing done for instruction %A" instr                     
+            DwInst <| instr
+        | "EQU" ->
+            failwith "Parse EQU instr %A" opcode'
+            let op1:int = parseLiteral prms.[0]
+            let instr : DeclareConstantInstr = {opcode = EQU;
+                                                label = label;
+                                                op1 = op1}
+            DcInst <| instr
+        | _ ->  //printfn "Parse other instruction type failed"
+                failwith "Other instruction not defined"
+
+
+        //printfn "%A" (label, opcode, prms)
+
+    
+
+[<RequireQualifiedAccess;
 CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
 module OtherInstruction =
     let parse instrS =
-        failwith "Not implemented"
+        OtherParser.parseLine instrS
+
+        //failwith "Not implemented"
         
     let rec private declareWords state address wList =
         match wList with
