@@ -1,5 +1,7 @@
 module Other
 open Machine
+open CommonParserFunctions
+open ErrorHandler
 
 type DeclareWord = | DCD | DCB
 type DeclareConstant = | EQU
@@ -7,19 +9,75 @@ type FillMemory = | FILL
 
 type private DeclareWordInstr = {opcode:DeclareWord; label: string; op1:int list}
 type private DeclareConstantInstr = {opcode:DeclareConstant; label: string; op1:int} //op1 can be an expression
-type private FillMemoryInstr = {opcode:FillMemory; label: option<string>; op1:int}
+type private FillMemoryInstr = {opcode:FillMemory; label: string option; op1:int}
 
 type OtherInstruction =
     private 
-        |DwInst of DeclareWordInstr
-        |DcInst of DeclareConstantInstr
-        |FInst of FillMemoryInstr
+        | DwInst of DeclareWordInstr
+        | DcInst of DeclareConstantInstr
+        | FInst of FillMemoryInstr
 
-[<RequireQualifiedAccess; 
+module OtherParser =
+
+
+    let parseLine (line:string) =
+        let cleanLine = line |> decomment |> trimmer |> splitInstr
+        let label = fst cleanLine
+        if label = "FILL" then
+            let num = snd cleanLine |> int
+            let instr: FillMemoryInstr =
+                {opcode=FILL; label = None; op1 = num}
+            //printfn "instr done %A" (instr.opcode, instr.label, instr.op1)
+            FInst <| instr
+        else
+            let instruction = snd cleanLine |> splitInstr
+            let opcode' : string = fst instruction
+
+            //printfn "about to parse opcode %A" opcode'
+            match opcode' with
+            | "DCD" | "DCB" ->
+                let prms: string list = snd instruction |> splitOperands
+                let op1s = List.map (fun (x:string) -> x.Trim() |> parseLiteral) prms
+                let opcode = if opcode' = "DCD" then DCD else DCB
+                    
+                let instr : DeclareWordInstr = {opcode = opcode;
+                                                label=label;
+                                                op1=op1s}
+                DwInst <| instr
+            | "EQU" ->
+                let prms = snd instruction |> splitOperands
+                let op1:int = parseLiteral prms.[0]
+                let instr : DeclareConstantInstr = {opcode = EQU;
+                                                    label = label;
+                                                    op1 = op1}
+                DcInst <| instr
+
+            | "FILL" ->
+                let num = snd instruction |> int
+                let instr: FillMemoryInstr =
+                    {opcode=FILL; label = Some label; op1 = num}
+
+                //printfn "instr done %A" (instr.opcode, instr.label, instr.op1)
+
+                FInst <| instr
+            | _ -> 
+                failc ("Unrecognized instruction: " + label)
+
+            
+
+        //printfn "%A" (label, opcode, prms)
+
+    
+
+[<RequireQualifiedAccess;
 CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
 module OtherInstruction =
     let parse instrS =
-        failwith "Not implemented"
+        //printfn "otherInstruction.parse %A" instrS
+
+        OtherParser.parseLine instrS
+
+        //failwith "Not implemented"
         
     let rec private declareWords state address wList =
         match wList with
@@ -35,7 +93,7 @@ module OtherInstruction =
                 let newState = State.updateByteInMemory address h state
                 declareBytes newState (address + 1) t
             else
-                failwithf("Value should be a byte")
+                failc "Value should be a byte"
         | _ ->
             if address % 4 = 0 then
                 State.updateMemoryAddress address state
@@ -49,7 +107,7 @@ module OtherInstruction =
             let newState = State.updateWordInMemory address 0 state
             fillMemory newState (address+4) (n-4)
         | 0 -> State.updateMemoryAddress address state
-        | _ -> failwithf("FILL instruciton: n cannot be negative") 
+        | _ -> failc "FILL instruciton: n cannot be negative"
         
 
     let private executeDeclareWordInstruction state (instr:DeclareWordInstr) =
@@ -69,7 +127,7 @@ module OtherInstruction =
                 fillMemory s address n
             | None -> fillMemory state address n
         else
-            failwithf("Fill instruction: n must be a multiple of 4")
+            failc "Fill instruction: n must be a multiple of 4"
 
     let private executeDeclareConstantInstruction state 
                                                   (instr:DeclareConstantInstr) =

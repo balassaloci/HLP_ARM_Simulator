@@ -7,11 +7,12 @@ open Memory
 open Branch
 open Other
 open CommonParserFunctions
+open ErrorHandler
 
 type Instruction =
     | ALUInst of ALU.ALUInstruction
     | MemInst of Memory.MemoryInstruction
-    | BrInst of Branch.BranchInstruction
+    | CrInst of Branch.ControlInstruction
     | OInstr of Other.OtherInstruction
 
 module ExecuteParser =
@@ -25,17 +26,29 @@ module ExecuteParser =
                     | "EOR" | "BIC" | "ORR" -> ALUInst <| ALUInstruction.parse instrS
                 | "MOV" | "MVN" | "LDR" | "STR" | "LDM"
                     | "STM" | "ADR" -> MemInst <| MemoryInstruction.parse instrS
-                | "DCD" | "DCB" | "EQU" | "FILL" -> OInstr <| OtherInstruction.parse instrS
-                | _ -> failwithf "Unable to parse instruction"
+                | x when not (x = "END" || x.StartsWith("B")) -> 
+                       //printfn "calling otherInstruction parse"
+                       OInstr <| OtherInstruction.parse instrS
+
+                | _ ->  //printfn "Parsing control instruction %A" instrS
+                        CrInst <| ControlInstruction.parse instrS
+///                | _ -> failc ("Unrecognized instruction1: " + instrS)
             else
+                //printfn "Starting to parse branch instructions"
                 match instrS with
-                | Prefix "B" _ -> BrInst <| BranchInstruction.parse instrS
-                | _ -> failwithf "Unable to parse instruction"
+                | Prefix "B" _ -> CrInst <| ControlInstruction.parse instrS
+                | _ -> failc ("Unrecognized instruction2: " + instrS)
+
         try
             None, parseInstruction (instrS)
         with
-        | _ -> match splitInstr instrS with
-               | l, i -> Some (l), parseInstruction i
+        | CustomException t ->
+            try
+                match splitInstr instrS with
+                | l, i -> Some (l), parseInstruction i
+            with
+            | _ ->
+                failc t
 
     let parseAll (txt: string) =
         let lines = txt.Split([|'\n'; '\r'|], System.StringSplitOptions.RemoveEmptyEntries)
@@ -46,7 +59,12 @@ module ExecuteParser =
                                  (firstInstr: Instruction array) =
             match lines with
             | x::xn -> 
-                let parsed = parseLine x
+                let parsed = 
+                    try
+                        parseLine x
+                    with
+                        CustomException t ->
+                            failc ("Error while parsing line: " + x + "\n" + t)
                 let labels' =
                    match fst parsed with
                    | Some l -> labels.Add(l, memInstr.Length * 4)
@@ -77,7 +95,7 @@ module Instruction =
         match instruction with
         | ALUInst ai -> ALU.ALUInstruction.execute state ai
         | MemInst mi -> Memory.MemoryInstruction.execute state mi
-        | BrInst bi -> Branch.BranchInstruction.execute state bi
+        | CrInst bi -> Branch.ControlInstruction.execute state bi
         | _ -> state //should never matched
 
     let private executeSpecialInstr instrList state =
@@ -104,8 +122,12 @@ module Instruction =
         let pcAddress = State.registerValue PC state
         let instr = State.getInstruction pcAddress state
         if instr.IsSome then
-            execute state instr.Value
-            |> State.incrementPC
+            let newState = execute state instr.Value
+                        |> State.incrementPC
+            let nPC = State.registerValue PC state
+            if State.instructionExists nPC newState then newState
+            else State.endExecution newState
+
         else
             State.endExecution state
 

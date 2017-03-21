@@ -1,8 +1,9 @@
 module ErrorHandler
 
-open Machine
-
 exception CustomException of string
+
+///Throws a CustomException that can be caught by the GUI
+let failc t = raise (CustomException t)
 
 /// List of all possible errors, add all cases here
 /// ADD YOUR ERRORS HERE

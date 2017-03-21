@@ -1,4 +1,5 @@
 module Machine
+open ErrorHandler
 
 // opesn 
 type RegisterIndex = 
@@ -37,7 +38,7 @@ module State =
         if address%4 = 0 then 
             Map.find (address/4) state.Memory
         else
-            failwithf("Memory address in not divisible by 4")
+            failc "Memory address in not divisible by 4"
             
     let getByteFromMemory address state =
         let byteIndex = address % 4
@@ -53,7 +54,7 @@ module State =
         if address % 4 = 0 then
             {state with Memory = Map.add (address/4) value state.Memory} //error if not divisible by 4
         else
-            failwithf("Memory address is not divisible by 4")
+            failc "Memory address is not divisible by 4"
 
     let updateByteInMemory address value state =
         let byteIndex = address % 4
@@ -115,14 +116,24 @@ module State =
             Some (Array.get state.Instructions index)
         else None
 
+    let instructionExists (address:int) state =
+        let index = (address / 4) - 1
+        index < Array.length state.Instructions
+
     let lastInstructionAddress state = 
         let length = Array.length state.Instructions
         (length - 1) * 4
 
     let addLabelAddress label address state =
-        {state with Labels = Map.add label address state.Labels}
+        if Map.containsKey label state.Labels then
+            failc "Connot overwrite labels"
+        else
+            {state with Labels = Map.add label address state.Labels}
 
-    let getLabelAddress label state = Map.find label state.Labels
+    let getLabelAddress label state = 
+        if Map.containsKey label state.Labels then
+            Map.find label state.Labels
+        else failc "Label does not exist"
 
     let incrementPC state =
         let oldPC = systemRegisterValue PC state
