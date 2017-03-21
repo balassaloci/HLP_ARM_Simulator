@@ -90,7 +90,7 @@ module Program=
             Expecto.Expect.sequenceEqual (outExpected |> List.map getOut) outExpected "Reg and Mem outputs don't match"
 
     
-    let fsConfig = { FsCheck.Config.Default with MaxTest = 10 ; QuietOnSuccess=false}   
+    let fsConfig = { FsCheck.Config.Default with MaxTest = 5 ; QuietOnSuccess=false}   
     let seqConfig = { Expecto.Tests.defaultConfig with parallel = false; parallelWorkers=1}
     
 
@@ -135,15 +135,16 @@ module Program=
 
     let runSimulators instr =
         let visualResult = (RunVisualWithFlagsOutLocs [0;1;2;3] instr)
-//        let visualFlags, visualRegisters = match visualResult with | (f, r) -> (f, List.map (fun (a,b) -> (a,b)) (Map.toList r))
+        let visualFlags, visualRegisters = match visualResult with | (f, r) -> (f, List.map (fun (a,b) -> (a,b)) (Map.toList r))
+
+//        let visualRegisters = State.getRegisters ourResultMachineState |> Map.toList |> List.map (fun (a,b) -> mapToVisualReg a, b )
+//        let visualFlags = mapToVisualFlags <| State.getStatus ourResultMachineState
 
         let ourResultMachineState = Instruction.prepareState instr |> Instruction.runAll
 
         let ourRegisters = State.getRegisters ourResultMachineState |> Map.toList |> List.map (fun (a,b) -> mapToVisualReg a, b )
         let ourFlags = mapToVisualFlags <| State.getStatus ourResultMachineState
 
-        let visualRegisters = State.getRegisters ourResultMachineState |> Map.toList |> List.map (fun (a,b) -> mapToVisualReg a, b )
-        let visualFlags = mapToVisualFlags <| State.getStatus ourResultMachineState
         ourFlags, ourRegisters, visualFlags, visualRegisters
 
     let generateFlagsInstructions (carry:bool) (zero:bool) (negative:bool) (overflow:bool) =
@@ -307,7 +308,7 @@ module Program=
 
 
                   testArithmeticSimple "Random arithmetic tests with constant second operand" () ()
-                  testArithmeticFlexible "Random arithmetic tests with flexible second operand" () ()
+//                  testArithmeticFlexible "Random arithmetic tests with flexible second operand" () ()
 //                  testBitwiseSimple "Random logic tests with constant second operand" () ()
 //                  testBitwiseFlexible "Random logic tests with flexible second operand" () ()
 //                  testShiftSimple "Random shift tests" () ()
