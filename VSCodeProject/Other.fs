@@ -32,52 +32,49 @@ module OtherParser =
 
 
     let parseLine (line:string) =
-        printfn "Parsing other instruction %A" line
         let cleanLine = line |> decomment |> trimmer |> splitInstr
-        printfn "cleanline done"
         let label = fst cleanLine
-        printfn "label done %A" label
-        let instruction = snd cleanLine |> splitInstr
-        printfn "instruction split done %A" instruction
-        let opcode' : string = fst instruction
-        printfn "opcode split but not parsed %A" opcode'
-        let prms = snd instruction |> splitOperands
-        printf "params %A" prms
+        if label = "FILL" then
+            let num = snd cleanLine |> int
+            let instr: FillMemoryInstr =
+                {opcode=FILL; label = None; op1 = num}
+            //printfn "instr done %A" (instr.opcode, instr.label, instr.op1)
+            FInst <| instr
+        else
+            let instruction = snd cleanLine |> splitInstr
+            let opcode' : string = fst instruction
 
+            //printfn "about to parse opcode %A" opcode'
+            match opcode' with
+            | "DCD" | "DCB" ->
+                let prms: string list = snd instruction |> splitOperands
+                let op1s = List.map (fun (x:string) -> x.Trim() |> parseLiteral) prms
+                let opcode = if opcode' = "DCD" then DCD else DCB
+                    
+                let instr : DeclareWordInstr = {opcode = opcode;
+                                                label=label;
+                                                op1=op1s}
+                DwInst <| instr
+            | "EQU" ->
+                let prms = snd instruction |> splitOperands
+                let op1:int = parseLiteral prms.[0]
+                let instr : DeclareConstantInstr = {opcode = EQU;
+                                                    label = label;
+                                                    op1 = op1}
+                DcInst <| instr
 
-        printfn "Parsing stuff based on opcode %A" opcode'
+            | "FILL" ->
+                let num = snd instruction |> int
+                let instr: FillMemoryInstr =
+                    {opcode=FILL; label = Some label; op1 = num}
 
-        failwithf "sorry, unable to parse based on opcode"
+                //printfn "instr done %A" (instr.opcode, instr.label, instr.op1)
 
-        match opcode' with
-        | "DCD" | "DCB" ->
-            failwith "DCD?DCB branch open"
+                FInst <| instr
+            | _ -> 
+                failwith "trying to parse potentially 'fill' instructions"
 
-            let op1s = List.map parseLiteral prms
-            printfn "op1s parsed %A" op1s
-
-            let opcode =
-                match opcode' with
-                | "DCD" -> DCD
-                | "DCB" -> DCB
             
-            printfn "opcode parsed %A" opcode
-            let instr : DeclareWordInstr = {opcode = opcode;
-                                            label=label;
-                                            op1=op1s}
-
-            printfn "Parsing done for instruction %A" instr                     
-            DwInst <| instr
-        | "EQU" ->
-            failwith "Parse EQU instr %A" opcode'
-            let op1:int = parseLiteral prms.[0]
-            let instr : DeclareConstantInstr = {opcode = EQU;
-                                                label = label;
-                                                op1 = op1}
-            DcInst <| instr
-        | _ ->  //printfn "Parse other instruction type failed"
-                failwith "Other instruction not defined"
-
 
         //printfn "%A" (label, opcode, prms)
 
@@ -87,6 +84,8 @@ module OtherParser =
 CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
 module OtherInstruction =
     let parse instrS =
+        //printfn "otherInstruction.parse %A" instrS
+
         OtherParser.parseLine instrS
 
         //failwith "Not implemented"

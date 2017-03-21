@@ -36,6 +36,7 @@ let (|Prefix|   _|) (p:string) (s:string) =
 //Returns true if param is a numeric (decimal) string
 let isNumeric a = fst (System.Int32.TryParse(a))
 
+//Parsing Hexadecimal or decimal literals
 let parseLiteral a =
     let hexStringToInt (str: string) =
         //TODO: Make this /if/ forest nicer by simplifying out statements from r

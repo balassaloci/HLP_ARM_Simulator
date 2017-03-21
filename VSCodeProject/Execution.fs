@@ -25,7 +25,9 @@ module ExecuteParser =
                     | "EOR" | "BIC" | "ORR" -> ALUInst <| ALUInstruction.parse instrS
                 | "MOV" | "MVN" | "LDR" | "STR" | "LDM"
                     | "STM" | "ADR" -> MemInst <| MemoryInstruction.parse instrS
-                | x -> OInstr <| OtherInstruction.parse instrS
+                | x -> //printfn "calling otherInstruction parse"
+                       OInstr <| OtherInstruction.parse instrS
+                
 //                | _ -> failwithf "Unable to parse instruction"
             else
                 match instrS with
@@ -34,8 +36,12 @@ module ExecuteParser =
         try
             None, parseInstruction (instrS)
         with
-        | _ -> match splitInstr instrS with
-               | l, i -> Some (l), parseInstruction i
+            
+        | _ -> try
+                  match splitInstr instrS with
+                  | l, i -> Some (l), parseInstruction i
+               with
+               | _ -> failwith ("Unable to parse: " + instrS)
 
     let parseAll (txt: string) =
         let lines = txt.Split([|'\n'; '\r'|], System.StringSplitOptions.RemoveEmptyEntries)
@@ -47,7 +53,6 @@ module ExecuteParser =
             match lines with
             | x::xn -> 
                 let parsed = parseLine x
-                printfn "parseLine finished yo"
                 let labels' =
                    match fst parsed with
                    | Some l -> labels.Add(l, memInstr.Length * 4)
