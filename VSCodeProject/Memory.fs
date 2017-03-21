@@ -29,7 +29,7 @@ type private MoveOperands = {dest: RegOperand; op1: ExecOperand}
 type private SingleMemoryOperands = {op1: RegOperand;
                                      op2: RegOperand;
                                      method: AddressingMethod;
-                                     offset: ExecOperand}
+                                     offset: ExecOperand option}
 type private MultipleMemoryOperands = {op1: RegOperand;
                                        op2: RegOperand list}
 type private LoadAddressOperands = {dest: RegOperand
@@ -333,7 +333,7 @@ module MemoryInstruction =
                     let value = State.getWordFromMemory address state
                     State.updateRegister dest value state
                 else
-                    failwithf("address should be a multiple of 4")
+                    failc "address should be a multiple of 4"
 
     let private storeSingleRegister (b: MemoryMode) (src: RegOperand) (address: int) state =
         match b with
@@ -345,7 +345,7 @@ module MemoryInstruction =
                     let value = State.registerValue src state
                     State.updateWordInMemory address value state
                 else
-                    failwithf("address should be a multiple of 4")
+                    failc "address should be a multiple of 4"
     
     let private getSingleRegisterMemoryFunction = function
         | LDR -> loadSingleRegister
@@ -372,7 +372,7 @@ module MemoryInstruction =
                 | _ -> State.updateRegister adrReg (adr+rOffset) state
             storeRegisters (address+aOffset) rList state
         else
-            failwithf("address should be a multiple of 4")
+            failc "address should be a multiple of 4"
 
     let private load (param: RegOperand list * int * int * int) adrReg  state =
         let address = State.registerValue adrReg state
@@ -388,7 +388,7 @@ module MemoryInstruction =
                 | _ -> State.updateRegister adrReg (adr+rOffset) state
             loadRegisters (address+aOffset) rList state
         else
-            failwithf("address should be a multiple of 4")
+            failc "address should be a multiple of 4"
 
     let private addressExpressionValue (expression: AddressExpression) state =
         match expression with
@@ -423,22 +423,41 @@ module MemoryInstruction =
             let op1,op2 = instr.operands.op1, instr.operands.op2
             let method,offset = instr.operands.method, instr.operands.offset
             match method with 
-            | Offset -> 
-                let v,_ = execOperandValue offset state
-                let address = 
-                    (State.registerValue op2 state) + int v
-                getSingleRegisterMemoryFunction core <|memoryMode <|op1 <|address <|state
+            | Offset ->
+                if Option.isSome offset then
+                    let v,_ = execOperandValue (Option.get offset) state
+                    let address = 
+                        (State.registerValue op2 state) + int v
+                    getSingleRegisterMemoryFunction core <|memoryMode <|op1 <|address <|state
+                else
+                    let v = 0
+                    let address = 
+                        (State.registerValue op2 state) + int v
+                    getSingleRegisterMemoryFunction core <|memoryMode <|op1 <|address <|state
             | PreIndexed ->
-                let v,_ = execOperandValue offset state
-                let address =
-                    (State.registerValue op2 state) + int v
-                let newState = State.updateRegister op2 address state
-                getSingleRegisterMemoryFunction core <|memoryMode <|op1 <|address <|newState
+                if Option.isSome offset then
+                    let v,_ = execOperandValue (Option.get offset) state
+                    let address =
+                        (State.registerValue op2 state) + int v
+                    let newState = State.updateRegister op2 address state
+                    getSingleRegisterMemoryFunction core <|memoryMode <|op1 <|address <|newState
+                else
+                    let v = 0
+                    let address =
+                        (State.registerValue op2 state) + int v
+                    let newState = State.updateRegister op2 address state
+                    getSingleRegisterMemoryFunction core <|memoryMode <|op1 <|address <|newState
             | PostIndexed ->
-                let address = State.registerValue op2 state
-                let v,_ = execOperandValue offset state
-                let newState = State.updateRegister op2 (address + int v) state
-                getSingleRegisterMemoryFunction core <|memoryMode <|op1 <|address <|newState
+                if Option.isSome offset then
+                    let address = State.registerValue op2 state
+                    let v,_ = execOperandValue (Option.get offset) state
+                    let newState = State.updateRegister op2 (address + int v) state
+                    getSingleRegisterMemoryFunction core <|memoryMode <|op1 <|address <|newState
+                else
+                    let address = State.registerValue op2 state
+                    let v = 0
+                    let newState = State.updateRegister op2 (address + int v) state
+                    getSingleRegisterMemoryFunction core <|memoryMode <|op1 <|address <|newState
         else
             state
 

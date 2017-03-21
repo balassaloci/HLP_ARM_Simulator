@@ -1,4 +1,5 @@
 module Machine
+open ErrorHandler
 
 // opesn 
 type RegisterIndex = 
@@ -37,7 +38,7 @@ module State =
         if address%4 = 0 then 
             Map.find (address/4) state.Memory
         else
-            failwithf("Memory address in not divisible by 4")
+            failc "Memory address in not divisible by 4"
             
     let getByteFromMemory address state =
         let byteIndex = address % 4
@@ -53,7 +54,7 @@ module State =
         if address % 4 = 0 then
             {state with Memory = Map.add (address/4) value state.Memory} //error if not divisible by 4
         else
-            failwithf("Memory address is not divisible by 4")
+            failc "Memory address is not divisible by 4"
 
     let updateByteInMemory address value state =
         let byteIndex = address % 4
