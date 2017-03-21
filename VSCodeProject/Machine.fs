@@ -116,14 +116,24 @@ module State =
             Some (Array.get state.Instructions index)
         else None
 
+    let instructionExists (address:int) state =
+        let index = (address / 4) - 1
+        index < Array.length state.Instructions
+
     let lastInstructionAddress state = 
         let length = Array.length state.Instructions
         (length - 1) * 4
 
     let addLabelAddress label address state =
-        {state with Labels = Map.add label address state.Labels}
+        if Map.containsKey label state.Labels then
+            failc "Connot overwrite labels"
+        else
+            {state with Labels = Map.add label address state.Labels}
 
-    let getLabelAddress label state = Map.find label state.Labels
+    let getLabelAddress label state = 
+        if Map.containsKey label state.Labels then
+            Map.find label state.Labels
+        else failc "Label does not exist"
 
     let incrementPC state =
         let oldPC = systemRegisterValue PC state

@@ -118,8 +118,12 @@ module Instruction =
         let pcAddress = State.registerValue PC state
         let instr = State.getInstruction pcAddress state
         if instr.IsSome then
-            execute state instr.Value
-            |> State.incrementPC
+            let newState = execute state instr.Value
+                        |> State.incrementPC
+            let nPC = State.registerValue PC state
+            if State.instructionExists nPC newState then newState
+            else State.endExecution newState
+
         else
             State.endExecution state
 
