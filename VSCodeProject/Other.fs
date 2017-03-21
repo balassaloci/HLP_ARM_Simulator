@@ -18,18 +18,6 @@ type OtherInstruction =
 
 module OtherParser =
 
-    //let getMemoryInstruction instruction =
-    //    match instruction with
-    //    | "MOV" -> MoveInstructionT MOV
-    //    | "MVN" -> MoveInstructionT MVN
-    //    | "LDR" -> SingleMemoryT LDR
-    //    | "STR" -> SingleMemoryT STR
-    //    | "LDM" -> MultipleMemoryT LDM
-    //    | "STM" -> MultipleMemoryT STM
-    //    | "ADR" -> MemoryAddressT ADR
-    //    | _ -> failwithf "Unable to parse memory instruction %A" instruction
-
-
 
     let parseLine (line:string) =
         let cleanLine = line |> decomment |> trimmer |> splitInstr

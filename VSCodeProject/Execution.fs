@@ -7,6 +7,7 @@ open Memory
 open Branch
 open Other
 open CommonParserFunctions
+open ErrorHandler
 
 type Instruction =
     | ALUInst of ALU.ALUInstruction
@@ -32,16 +33,18 @@ module ExecuteParser =
             else
                 match instrS with
                 | Prefix "B" _ -> CrInst <| ControlInstruction.parse instrS
-                | _ -> failwithf "Unable to parse instruction"
+                | _ -> failc ("Unrecognized instruction: " + instrS)
+
         try
             None, parseInstruction (instrS)
         with
-            
-        | _ -> try
-                  match splitInstr instrS with
-                  | l, i -> Some (l), parseInstruction i
-               with
-               | _ -> failwith ("Unable to parse: " + instrS)
+        | CustomException t ->
+            try
+                match splitInstr instrS with
+                | l, i -> Some (l), parseInstruction i
+            with
+            | _ ->
+                failc t
 
     let parseAll (txt: string) =
         let lines = txt.Split([|'\n'; '\r'|], System.StringSplitOptions.RemoveEmptyEntries)
@@ -52,7 +55,12 @@ module ExecuteParser =
                                  (firstInstr: Instruction array) =
             match lines with
             | x::xn -> 
-                let parsed = parseLine x
+                let parsed = 
+                    try
+                        parseLine x
+                    with
+                        CustomException t ->
+                            failc ("Error while parsing line: " + x + "\n" + t)
                 let labels' =
                    match fst parsed with
                    | Some l -> labels.Add(l, memInstr.Length * 4)

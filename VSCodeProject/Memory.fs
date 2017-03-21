@@ -61,7 +61,7 @@ module MemoryParser =
     let getMemoryMode = function
         | "B" -> Byte
         | "" -> Word
-        | _ -> failwith "Unable to parse memory mode"
+        | x -> failc ("Unable to parse Memory Mode: " + x)
 
     let getUpdateMode = function
         | "EA" -> EA
@@ -72,7 +72,7 @@ module MemoryParser =
         | "IB" -> IB
         | "DA" -> DA
         | "DB" -> DB
-        | _ -> failwith "Unable to parse update mode"
+        | x -> failc ("Unable to parse Update Mode: " + x)
 
     //let getCondB (condBS:string) =
     //    //printfn "getCondB %A" condBS
@@ -97,7 +97,8 @@ module MemoryParser =
         match condUM.Length with
         | 2 -> AL, getUpdateMode condUM
         | 4 -> (getCond condUM.[2..3]), (getUpdateMode condUM.[..1])
-        | _ -> failwith "Invalid condition or update mode for memory instruction"
+        | _ -> failc ("Invalid condition or update mode for memory instruction: " + condUM)
+
 
     //let remOpenSquareBrkt ( = function
     //    | x::xn when x = '[' -> xn
@@ -105,7 +106,7 @@ module MemoryParser =
 
     let remOpenSquareBrkt (x:string) =
         //printfn "remOpenSquareBrkt %A" x
-        if x.StartsWith "[" then x.[1..] else failwith "Invalid register specification"
+        if x.StartsWith "[" then x.[1..] else failc ("Invalid register specification: " + x)
 
     let optRemEnd (x:string) (y:string) = 
         if x.EndsWith y then true, x.[.. x.Length - y.Length - 1] else false, x
@@ -116,8 +117,7 @@ module MemoryParser =
                             else [x], PostIndexed
         | x::xn -> let v = getAddressMethod xn
                    x :: fst v, snd v
-        | x ->  printfn "getAddressMethod failing %A" x
-                failwith "Unable to parse address method"
+        | x ->  failc "Unable to parse address method"
 
 
     let rec getMReg = function
@@ -138,19 +138,18 @@ module MemoryParser =
         let rec fixEnd = function
             | (x:string)::[] -> 
                 if x.EndsWith "}" then [x.[..x.Length - 2]]
-                else failwith "Missing '}' from register range"
+                else failc "Missing closing bracket '}' from register range"
             | x :: xn -> x :: fixEnd xn
-            | _ -> failwith "Unable to parse"
+            | _ -> failc ("Unable to parse register ranges")
         
         let fixStart (x:string list) =
             let x1 = x.Head.Trim()
             if x1.StartsWith "{" then
                 x1.[1..] :: x.Tail
             else
-                failwith "Missing '{' from register range"
+                failc "Missing opening bracket '{' from register range"
         
         regs |> fixStart |> fixEnd |> getMReg
-
 
     let getMemoryInstruction instruction =
         match instruction with
@@ -161,46 +160,51 @@ module MemoryParser =
         | "LDM" -> MultipleMemoryT LDM
         | "STM" -> MultipleMemoryT STM
         | "ADR" -> MemoryAddressT ADR
-        | _ -> failwithf "Unable to parse memory instruction %A" instruction
+        | _ -> failc "Unable to parse memory instruction %A" instruction
     
     let parseMoveInstruction (i:Move) (instrStr:string) splitOper =
+        //printfn "Parsing move instruction"
+
         match splitOper with
         | op1S :: op2S :: restS ->
+
             let scode = getSCond instrStr.[3..] 
             let op1 = op1S |> getRegIndex
+            //printfn "parsing move instr %A" (op2S, restS)
             let op2 : ExecOperand = parseExecOperand op2S restS
-            printfn "%A" op2
+            //printfn "parsing move instr %A" op2
+            //printfn "%A" op2
             let opcode : MoveOpCode = {opcode = i; mode = fst scode; condSuffix = snd scode}
             let operands : MoveOperands = {dest = op1; op1 = op2}
             let instr : MemoryInstruction = MvInst {operation = opcode; operands = operands}
             instr
 
-        | _ -> failwithf "Unable to parse move instruction: "
+        | _ -> failc "Unable to parse move instruction: "
     
     let parseSingleMemoryInstruction (i:SingleMemory) (instrStr:string) (splitOper:string list) =
-        printfn "Parsing single memory instruction"
+        //printfn "Parsing single memory instruction"
         let conds = getBCond instrStr.[3..]
                     //if instrStr.Length > 3 then
                     //    getCondB instrStr.[3..]
 
                     //else AL, getMemoryMode ""
 
-        printfn "Cond code done"
+        //printfn "Cond code done"
         let op1 : RegOperand = splitOper.Head |> getRegIndex
-        printfn "Op1 done"
+        //printfn "Op1 done"
         let split' = splitOper.Tail
-        printfn "split' done"
+        //printfn "split' done"
         let op2'  = split'.Head |> trimmer |> remOpenSquareBrkt
-        printfn "remOpenS done"
+        //printfn "remOpenS done"
         let op2 = snd (optRemEnd op2' "]") |> getRegIndex
-        printfn "Op2 done %A" split'.Tail
+        //printfn "Op2 done %A" split'.Tail
 
         let cleanAddrMethod = getAddressMethod (split'.Tail)
-        printfn "CleanAddrMethod done"
+        //printfn "CleanAddrMethod done"
         let aMethod = snd cleanAddrMethod
         let cleanOps:string list = fst cleanAddrMethod
         let offset = parseExecOperand cleanOps.Head cleanOps.Tail
-        printfn "parseExecOperand done"
+        //printfn "parseExecOperand done"
 
         //let op2Method = optRemEnd op2' "]"
         //let aMethod:AddressingMethod =
@@ -228,13 +232,13 @@ module MemoryParser =
         let instruction : SingleMemoryInstr =
             {operation = opCode; operands = operands}
         
-        printfn "%A"
-            (instruction.operation.opcode, instruction.operation.mode, 
-            instruction.operation.condSuffix,
-            instruction. operands.op1, 
-            instruction. operands.op2, 
-            instruction. operands.method, 
-            instruction. operands.offset)
+        //printfn "%A"
+            //(instruction.operation.opcode, instruction.operation.mode, 
+            //instruction.operation.condSuffix,
+            //instruction. operands.op1, 
+            //instruction. operands.op2, 
+            //instruction. operands.method, 
+            //instruction. operands.offset)
              
         instruction |> SInst
 
@@ -287,40 +291,32 @@ module MemoryParser =
             let instr : LoadAddressInstr =  {operation = opcode; operands = operands}
             instr |> LInst
         | _ ->  printfn "adr instruction failed"
-                failwithf "Unable to parse move instruction: "
+                failc "Unable to parse move instruction: "
 
     let parseLine line =
-        maybe {
-            let cleanLine = line |> decomment |> trimmer |> splitInstr
-            let instrStr : string = fst cleanLine
-            let paramStr : string = snd cleanLine
-            let splitOper = splitOperands paramStr
-            let instr = getMemoryInstruction instrStr.[0..2]
-        
-            let operands =
-                match instr with
-                | MoveInstructionT i -> parseMoveInstruction i instrStr splitOper
-                | SingleMemoryT i -> parseSingleMemoryInstruction i instrStr splitOper
-                | MultipleMemoryT i -> parseMultipleMemoryInstruction i instrStr splitOper
-                | MemoryAddressT i -> parseADR i instrStr splitOper
-                | _ -> failwith "Not implemented yet"
+        let cleanLine = line |> decomment |> trimmer |> splitInstr
+        let instrStr : string = fst cleanLine
+        let paramStr : string = snd cleanLine
+        let splitOper = splitOperands paramStr
+        let instr = getMemoryInstruction instrStr.[0..2]
 
-            return operands
-        }
+        match instr with
+        | MoveInstructionT i -> parseMoveInstruction i instrStr splitOper
+        | SingleMemoryT i -> parseSingleMemoryInstruction i instrStr splitOper
+        | MultipleMemoryT i -> parseMultipleMemoryInstruction i instrStr splitOper
+        | MemoryAddressT i -> parseADR i instrStr splitOper
+        //| _ -> failwith "Not implemented yet"
 
-          
+
 
 [<RequireQualifiedAccess; 
 CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
 module MemoryInstruction =
     open MemoryParser
     let parse: string -> MemoryInstruction =
-        fun x ->
-            match parseLine x with
-            | Success i -> i
-            | Error t -> failwith "unable to parse"
+        parseLine
         
-        //failwithf "Not implemented"
+        //failc "Not implemented"
 
     let private applyMoveFunction (core:Move) (v:int64) =
         match core with
