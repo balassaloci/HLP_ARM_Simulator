@@ -1,6 +1,7 @@
 module Other
 open Machine
 open CommonParserFunctions
+open ErrorHandler
 
 type DeclareWord = | DCD | DCB
 type DeclareConstant = | EQU
@@ -8,7 +9,7 @@ type FillMemory = | FILL
 
 type private DeclareWordInstr = {opcode:DeclareWord; label: string; op1:int list}
 type private DeclareConstantInstr = {opcode:DeclareConstant; label: string; op1:int} //op1 can be an expression
-type private FillMemoryInstr = {opcode:FillMemory; label: option<string>; op1:int}
+type private FillMemoryInstr = {opcode:FillMemory; label: string option; op1:int}
 
 type OtherInstruction =
     private 
@@ -17,18 +18,6 @@ type OtherInstruction =
         | FInst of FillMemoryInstr
 
 module OtherParser =
-
-    //let getMemoryInstruction instruction =
-    //    match instruction with
-    //    | "MOV" -> MoveInstructionT MOV
-    //    | "MVN" -> MoveInstructionT MVN
-    //    | "LDR" -> SingleMemoryT LDR
-    //    | "STR" -> SingleMemoryT STR
-    //    | "LDM" -> MultipleMemoryT LDM
-    //    | "STM" -> MultipleMemoryT STM
-    //    | "ADR" -> MemoryAddressT ADR
-    //    | _ -> failwithf "Unable to parse memory instruction %A" instruction
-
 
 
     let parseLine (line:string) =
@@ -72,7 +61,7 @@ module OtherParser =
 
                 FInst <| instr
             | _ -> 
-                failwith "trying to parse potentially 'fill' instructions"
+                failc "trying to parse potentially 'fill' instructions"
 
             
 
@@ -104,7 +93,7 @@ module OtherInstruction =
                 let newState = State.updateByteInMemory address h state
                 declareBytes newState (address + 1) t
             else
-                failwithf("Value should be a byte")
+                failc "Value should be a byte"
         | _ ->
             if address % 4 = 0 then
                 State.updateMemoryAddress address state
@@ -118,7 +107,7 @@ module OtherInstruction =
             let newState = State.updateWordInMemory address 0 state
             fillMemory newState (address+4) (n-4)
         | 0 -> State.updateMemoryAddress address state
-        | _ -> failwithf("FILL instruciton: n cannot be negative") 
+        | _ -> failc "FILL instruciton: n cannot be negative"
         
 
     let private executeDeclareWordInstruction state (instr:DeclareWordInstr) =
@@ -138,7 +127,7 @@ module OtherInstruction =
                 fillMemory s address n
             | None -> fillMemory state address n
         else
-            failwithf("Fill instruction: n must be a multiple of 4")
+            failc "Fill instruction: n must be a multiple of 4"
 
     let private executeDeclareConstantInstruction state 
                                                   (instr:DeclareConstantInstr) =

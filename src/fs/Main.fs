@@ -29,7 +29,6 @@ type Model =
         Buttons: Buttonstate list
         Runstate: IRunState
         ErrorMessage: string
-        PreviouslyHighlightedLine: int
     }
 
 /// actions that are called from elments in the view
@@ -76,15 +75,14 @@ let cmEditor () =
 
 
 //let runOnce
-
+// let catchAndDisplayError model f:('a -> Model) =
+//     try
+//         f
+//     with
+//         | CustomException(msg) -> {model with ErrorMessage = msg; Runstate = Init}
 
 
 let update model msg =
-    let parseAndPrepare (str:string) =
-        // split text to array 
-        let instrArr = str.Split('\n')
-        let instructions = Array.map (ALUInstruction.parse >> Execution.ALUInst) instrArr
-        State.makeInitialState instructions
         
     let runOnce once s =
         printfn "TEST: run once"
@@ -92,14 +90,16 @@ let update model msg =
             let initState = Instruction.prepareState s
             match once with 
             | true -> {model with MachineState = Instruction.runOnce initState; Runstate = Running} // TODO reset at last
-            | false -> {model with MachineState = Instruction.runAll initState; Runstate = Init} // TODO change
+            | false -> raise (CustomException "TESTEXEPTION!")
+            //{model with MachineState = Instruction.runAll initState; Runstate = Init} // TODO change
         with
             | CustomException(msg) -> {model with ErrorMessage = msg; Runstate = Init}
     
     let model' =
         match msg with
         | Run s -> runOnce false s
-        | RunOne s when model.Runstate = Init -> runOnce true s
+        | RunOne s when model.Runstate = Init -> let initState = Instruction.prepareState s
+                                                 {model with MachineState = initState; Runstate = Running}
         | RunOne _ -> try 
                         {model with MachineState = Instruction.runOnce model.MachineState}
                       with
@@ -110,29 +110,37 @@ let update model msg =
         | ErrorMessage msg -> {model with ErrorMessage = msg}
         | _ ->  model 
 
-    
+    printfn "END: %b" (State.checkEndExecution model'.MachineState)
     // handle sideeffects separately
-    let getLineNumber state =
-        let pc = (State.registerValue PC state)
-        (pc  / 4) - 2 // -2 because pc counts from 1, one instruction is already done, and -1 because we want previous
-
-    printfn "%d" ((getLineNumber model'.MachineState)-1)
-               
-
     let jsCall =
+        // get the current line number at pc counter
+        // TODO remove special instructions DCD/FILL
+        let getLineNumber state =
+            let pc = (State.registerValue PC state)
+            (pc  / 4) - 1 // counter starts at 4
+
+        // remove all highlighten lines
+        let removeAllLineClasses doc =
+            let removeLineClass (doc: CodeMirrorImports.Doc) line =
+                doc.removeLineClass(line,"background", "line-bg") |> ignore;
+
+            let lastline = (int (cmEditor().lineCount())) - 1
+
+            [0..lastline] |> List.iter (removeLineClass doc)
+
         let doc = cmEditor().getDoc()
+        
         match msg with
         | RunOne _ -> let line = getLineNumber model'.MachineState
-                      toActionList <| fun x -> (doc.removeLineClass(model'.PreviouslyHighlightedLine,"background", "line-bg") |> ignore;
+                      toActionList <| fun x -> (removeAllLineClasses doc;
                                                 doc.addLineClass(line,"background", "line-bg") |> ignore)        
-        | Reset -> toActionList <| fun x -> doc.removeLineClass(model'.PreviouslyHighlightedLine, "background", "line-bg") |> ignore;                             
+        | Reset -> toActionList <| fun x -> removeAllLineClasses doc;
         | HighlightLine line -> let doc = cmEditor().getDoc()
                                 toActionList <| fun x -> (doc.addLineClass(line,"background", "line-bg") |> ignore)
         | _ -> []
 
-    // OK, this is not very nice to update the model at this point
-    // but linenumber doesn't want to update otherwise
-    {model' with PreviouslyHighlightedLine = getLineNumber model'.MachineState}, jsCall
+    // return model and jsCall back to application
+    model', jsCall
 
 
 (****************************************************************
@@ -397,8 +405,7 @@ let main () =
     let initModel = {MachineState = initMachineState; 
                      Buttons = initButtons; 
                      Runstate = Init; 
-                     ErrorMessage = "";
-                     PreviouslyHighlightedLine = 0}
+                     ErrorMessage = ""}
 
     createApp initModel view update Virtualdom.createRender
     |> withStartNodeSelector "#app"

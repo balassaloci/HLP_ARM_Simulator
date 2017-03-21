@@ -65,7 +65,7 @@ module ControlInstruction =
     let parse: string -> ControlInstruction =
         fun x-> match parseLine x with
                 | Success t -> t
-                | Error x -> failwithf "%A" x
+                | Error x -> failc "%A" x
 
     let private executeBranch (label:string) state = 
         let nextInstructionAddress = State.getLabelAddress label state

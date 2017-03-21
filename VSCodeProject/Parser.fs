@@ -1,6 +1,7 @@
 module Parser
 open Machine
 open Instruction
+open ErrorHandler
 
 let ParseLine (line : string) : ALUInstruction Option= 
     let splitter (s:string) = s.Split([|','; ' '; '\n'; '\n'; '\r'; '\f'|], 
@@ -35,7 +36,7 @@ let ParseLine (line : string) : ALUInstruction Option=
         | "LR" -> LR  
         | "PC" -> PC 
         // This is another register but not addressable by user 
-        | "CSPR" | _ -> failwithf "Invalid register address"
+        | "CSPR" | _ -> failc "Invalid register address"
     
     let getSCond scond =
         let matchCond cond =
@@ -57,7 +58,7 @@ let ParseLine (line : string) : ALUInstruction Option=
             | "GT" -> GT
             | "LE" -> LE
             | "" | "AL" -> AL
-            | _  -> failwithf "Invalid condition code"
+            | _  -> failc "Invalid condition code"
         
         match scond with
         | Prefix "S" cond -> (UpdateStatus, matchCond cond)
