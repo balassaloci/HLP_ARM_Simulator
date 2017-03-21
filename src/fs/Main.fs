@@ -83,34 +83,37 @@ let cmEditor () =
 
 
 let update model msg =
-        
-    let runOnce once s =
-        printfn "TEST: run once"
+
+    let newButtons machine button =    
+        List.map (fun b -> if (b = button && (State.checkEndExecution machine)) then BReset else b ) model.Buttons
+
+    let run s =
         try
             let initState = Instruction.prepareState s
-            match once with 
-            | true -> {model with MachineState = Instruction.runOnce initState; Runstate = Running} // TODO reset at last
-            | false -> raise (CustomException "TESTEXEPTION!")
-            //{model with MachineState = Instruction.runAll initState; Runstate = Init} // TODO change
+            let newMachine = Instruction.runAll initState
+            {model with MachineState = newMachine; Buttons = (newButtons newMachine BRunAll); Runstate = Init} 
         with
             | CustomException(msg) -> {model with ErrorMessage = msg; Runstate = Init}
     
     let model' =
         match msg with
-        | Run s -> runOnce false s
+        | Run s -> run s
         | RunOne s when model.Runstate = Init -> let initState = Instruction.prepareState s
                                                  {model with MachineState = initState; Runstate = Running}
         | RunOne _ -> try 
-                        {model with MachineState = Instruction.runOnce model.MachineState}
+                        let newMachine = Instruction.runOnce model.MachineState
+                
+                        {model with MachineState = newMachine; Buttons = newButtons newMachine BRunStep}
                       with
                         | CustomException(msg) -> {model with ErrorMessage = msg; Runstate = Init}
-        | Reset -> let defaultButtonState = [BRunAll; BRunStep; BReset]
+        | Reset -> let defaultButtonState = [BRunAll; BRunStep]
                    let resetState = State.makeInitialState [||] Map.empty<string, int>
                    {model with Buttons = defaultButtonState; MachineState = resetState; Runstate = Init}
         | ErrorMessage msg -> {model with ErrorMessage = msg}
         | _ ->  model 
 
     printfn "END: %b" (State.checkEndExecution model'.MachineState)
+    
     // handle sideeffects separately
     let jsCall =
         // get the current line number at pc counter
@@ -177,8 +180,10 @@ let runButton = function
 
 /// DOM for Message popup in Navigation
 let message msg =
-    div [attribute "class" "alert alert-warning alert-dismissible alert-head"
-         attribute "role" "alert"]
+    div [attribute "class" "dismissalert alert alert-warning alert-dismissible alert-head"
+         attribute "role" "alert"
+         attribute "id" "alert"
+         onMouseClick (fun e -> ErrorMessage "")]
         //  Popover by activating the following and then message.popover('show')
         //  attribute "data-toggle" "popover"
         //  attribute "data-trigger" "focus" 
@@ -197,7 +202,32 @@ let message msg =
                    [text msg]
         ]
 
+let popover message =
+    div [attribute "class" "alert popover fade bottom in"
+         attribute "role" "alert"
+         attribute "data-toggle" "popover"
+         attribute "id" "popover811790"
+         attribute "style" ("top: 45px; left: 573.125px; display: block;")]
+        [
+            div [attribute "class" "arrow"
+                 attribute "style" "left: 50%;"] []
+            h3 [attribute "class" "popover-title" 
+                attribute "style" "display: none;"] []
+            div [attribute "class" "popover-content"] [text message]
+        ]
+
+
 /// Header DOM
+let displayMessage (msg: string) =
+    printfn "ARR: %A" (msg.Split('\n',':'))
+    match msg with
+    | "" -> []
+    | m when String.length m < 20  -> [message m]
+    | m -> match m.Split('\n') |> Array.toList with
+           | h :: tl -> [message h; popover (String.concat "" tl)]
+           | _ -> [message m]
+                        
+
 let header model =
     nav [attribute "class" "navbar navbar-inverse navbar-fixed-top"]
         [
@@ -229,7 +259,7 @@ let header model =
                         [
                             ul  [attribute "class" "nav navbar-nav navbar-right"]
                                 (model.Buttons |> List.map runButton)
-                            div [](if model.ErrorMessage = "" then [] else [message model.ErrorMessage])
+                            div [] (displayMessage model.ErrorMessage)
                         ]
                 ]
         ]
@@ -303,7 +333,6 @@ let memory mem =
                         [
                             div [attribute "class" "panel-body"]
                                 [ 
-                                   text "TODO ..."
                                    (memorywrapper mem)
                                 ]
                         ]
@@ -401,7 +430,7 @@ let main () =
     let initMachineState = State.makeInitialState [||] Map.empty<string, int>
 
     printfn "Creating state"
-    let initButtons = [BRunAll; BRunStep; BReset]
+    let initButtons = [BRunAll; BRunStep]
     let initModel = {MachineState = initMachineState; 
                      Buttons = initButtons; 
                      Runstate = Init; 
