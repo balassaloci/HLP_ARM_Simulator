@@ -29,6 +29,7 @@ type Model =
         Buttons: Buttonstate list
         Runstate: IRunState
         ErrorMessage: string
+        PreviouslyHighlightedLine: int
     }
 
 /// actions that are called from elments in the view
@@ -111,13 +112,27 @@ let update model msg =
 
     
     // handle sideeffects separately
+    let getLineNumber state =
+        let pc = (State.registerValue PC state)
+        (pc  / 4) - 2 // -2 because pc counts from 1, one instruction is already done, and -1 because we want previous
+
+    printfn "%d" ((getLineNumber model'.MachineState)-1)
+               
+
     let jsCall =
+        let doc = cmEditor().getDoc()
         match msg with
+        | RunOne _ -> let line = getLineNumber model'.MachineState
+                      toActionList <| fun x -> (doc.removeLineClass(model'.PreviouslyHighlightedLine,"background", "line-bg") |> ignore;
+                                                doc.addLineClass(line,"background", "line-bg") |> ignore)        
+        | Reset -> toActionList <| fun x -> doc.removeLineClass(model'.PreviouslyHighlightedLine, "background", "line-bg") |> ignore;                             
         | HighlightLine line -> let doc = cmEditor().getDoc()
                                 toActionList <| fun x -> (doc.addLineClass(line,"background", "line-bg") |> ignore)
         | _ -> []
 
-    model', jsCall
+    // OK, this is not very nice to update the model at this point
+    // but linenumber doesn't want to update otherwise
+    {model' with PreviouslyHighlightedLine = getLineNumber model'.MachineState}, jsCall
 
 
 (****************************************************************
@@ -379,11 +394,14 @@ let main () =
 
     printfn "Creating state"
     let initButtons = [BRunAll; BRunStep; BReset]
-    let initModel = {MachineState = initMachineState; Buttons = initButtons; Runstate = Init; ErrorMessage = "alert"}
+    let initModel = {MachineState = initMachineState; 
+                     Buttons = initButtons; 
+                     Runstate = Init; 
+                     ErrorMessage = "";
+                     PreviouslyHighlightedLine = 0}
 
     createApp initModel view update Virtualdom.createRender
     |> withStartNodeSelector "#app"
-//    |> withSubscriber (fun x -> Fable.Import.Browser.console.log("Event received: ", x))
     |> start
 
     let initEditor =
@@ -397,8 +415,8 @@ let main () =
 
     cmEditor().setValue "ADD R0, R0, R1
 SUB R0, R0, R1
-LSL R0, R1, 4
-SUB R0, R0, 5"
+LSL R0, R1, #4
+SUB R0, R0, #5"
 //     cmEditor().setValue "        MOV R0, #1024          ; R0 is input, decreases by factors of 10
 //         MOV R1, #0             ; R1 is sum of digits
 //         MOV R2, #0x19000000    ; R2 is constantly 0x1999999A

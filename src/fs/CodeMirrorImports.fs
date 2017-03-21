@@ -128,6 +128,8 @@ and CodeMirrorMode = CodeMirrorModeNames list
 
 and [<AllowNullLiteral>] Doc =
     abstract addLineClass: line: int * where: string * cl: string -> CodeMirrorLineHandle
+    abstract removeLineClass: line: int * where: string * cl: string -> CodeMirrorLineHandle
+    abstract eachLine: f: (int -> unit) -> unit
 
 and [<AllowNullLiteral>] CodeMirrorEditor =
     abstract getLineTokens: line: int -> Array<CodeMirrorToken>

@@ -87,12 +87,28 @@ let supportedInstructions =
     let transformToRegex lst =
         "(" + (lst |> String.concat "|") + ")"
 
-    let instructions = ["MOV";"ADD";"SUB";"ADC";"SBC";"RSC";"LSL";"ASR";"ROR";
-                        "RXR";"CMP";"CMN";"TST";"TEQ";"AND";"EOR";"BIC";"ORR"]
-        
-    let postfixes = ["EQ";"NE";"CS";"HS";"CC";"LO";"MI";"PL";"VS";
-                    "VC";"HI";"LS";"GE";"LT";"GT";"LE";"AL";""]
-    "^" + (transformToRegex instructions) + (transformToRegex postfixes)
+    let combine arr1 str arr2 =
+        let middle = function
+            | "" -> ""
+            | s -> "(" + s + ")?"
+        (transformToRegex arr1) + (middle str) + (transformToRegex arr2) + "?"
+
+    let cond = ["EQ";"NE";"CS";"HS";"CC";"LO";"MI";"PL";"VS";
+                    "VC";"HI";"LS";"GE";"LT";"GT";"LE";"AL"]
+
+    // INSTR{S}{cond}
+    let scondInstr = ["MOV";"MVN";"ADR";"LDR";"ADD";"ADC";"SUB";"SBC";"RSB";"RSC";"AND";"EOR";"BIC";"ORR";"LSL";"LSR";"ASR";"ROR";"RRX"]
+    let iscond = combine scondInstr "S" cond
+    
+    // INSTR{cond}
+    let condInstr = ["CMP";"CMN";"TST";"TEQ";"B";"BL";"END"];
+    let icond = combine condInstr "" cond
+
+    // INSTR{B}{cond}
+    let bcondInstr = ["LDR";"STR"]
+    let ibcond = combine bcondInstr "B" cond
+
+    "^" + iscond + "|" + icond + "|" + ibcond 
 
 
 /// Called many times from CodeMirror to syntax highlight lines of text
