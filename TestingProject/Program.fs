@@ -7,6 +7,7 @@ module Program=
     open Execution
     open Machine
     open InstructionsCommonTypes
+    open Memory
 
     /// postlude which sets R1 bits to status bit values
     let NZCVToR12 =
@@ -123,6 +124,10 @@ module Program=
         Map.ofArray (enumerateSimpleCases<'T>)
 
     let arithmeticToStr = Map.ofArray enumerateSimpleCases<Arithmetic>
+    let moveToStr = Map.ofArray enumerateSimpleCases<Move>
+    let singleMemToStr = Map.ofArray enumerateSimpleCases<SingleMemory>
+    let multipleMemToStr = Map.ofArray enumerateSimpleCases<MultipleMemory>
+    let memAddressToStr = Map.ofArray enumerateSimpleCases<MemoryAddress>
 
     let shiftToStr = Map.ofArray enumerateSimpleCases<Shift>
     let compareToStr = Map.ofArray enumerateSimpleCases<Compare>
@@ -162,6 +167,11 @@ module Program=
             if overflow then genOverflowInstr else ""
         instr
 
+//    let testMoveSimple pName f p1c = 
+//        testPropertyWithConfig fsConfig pName
+//        <| fun (opcode:Move) (setBit:SetBit)
+//               (op1Val:int) (op2Val:int)
+    
     let testArithmeticSimple pName f p1c =
         testPropertyWithConfig fsConfig pName
         <| fun (opcode:Arithmetic) (setBit:SetBit)
