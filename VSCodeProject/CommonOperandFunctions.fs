@@ -3,6 +3,7 @@ module CommonOperandFunctions
 open Machine
 open InstructionsCommonTypes
 open Functions
+open ErrorHandler
 
 /// Fetches the numeric value stored in given register
 let registerOperandValue op state =
@@ -34,16 +35,16 @@ let execOperandValue op state =
         if is8bitRotated <| int value then
             value, 0
         else
-            failwith "Constant must created by rotating 8bit number"
+            failc "Constant must created by rotating 8bit number"
 
     | ExprOp (op2, shift, expr) ->
         let op2Val = registerOperandValue op2 state
         let shiftVal = mixedOperandValue expr state
         match shift with
         | ASR | LSR when shiftVal > 32 ->
-                           failwith "Shift must be less that 32"
+                           failc "Shift must be less that 32"
         | LSL | ROR when shiftVal > 31 ->
-                           failwith "Shift value must be less than 31"
+                           failc "Shift value must be less than 31"
         | _ -> ()
 
         let {body=num; carry=c} = applyShiftFunction shift 0 op2Val shiftVal

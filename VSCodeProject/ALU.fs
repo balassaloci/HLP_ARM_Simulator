@@ -155,7 +155,7 @@ module ALUInstruction =
             let op1 = instr.operands.op1
             let op2 = instr.operands.op2
             if not <| areValidArithmeticOperands core dest op1 op2 then
-                failwith "Wrong operands supplied"
+                failc "Wrong operands supplied"
 
             let op1Val = int64 <| State.registerValue op1 state
             // Ignore carry here
