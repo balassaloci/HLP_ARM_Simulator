@@ -58,26 +58,29 @@ module ExecuteParser =
                                  (labels:Map<string, int>)
                                  (firstInstr: Instruction array) =
             match lines with
-            | x::xn -> 
-                let parsed = 
-                    try
-                        parseLine x
-                    with
-                        CustomException t ->
-                            failc ("Error while parsing line: " + x + "\n" + t)
-                let labels' =
-                   match fst parsed with
-                   | Some l -> labels.Add(l, memInstr.Length * 4)
-                   | _ -> labels
-                let newInstrs =
-                    match snd parsed with
-                    | OInstr i -> memInstr, (Array.append firstInstr [|snd parsed|])
-                    | _ -> (Array.append memInstr [|snd parsed|]), firstInstr
+            | x::xn ->
+                if (x |> decomment |> trimmer).Length = 0 then
+                    matchLines xn memInstr labels firstInstr
+                else
+                    let parsed = 
+                        try
+                            parseLine x
+                        with
+                            CustomException t ->
+                                failc ("Error while parsing line: " + x + "\n" + t)
+                    let labels' =
+                       match fst parsed with
+                       | Some l -> labels.Add(l, memInstr.Length * 4)
+                       | _ -> labels
+                    let newInstrs =
+                        match snd parsed with
+                        | OInstr i -> memInstr, (Array.append firstInstr [|snd parsed|])
+                        | _ -> (Array.append memInstr [|snd parsed|]), firstInstr
 
-                let memInstr' = fst newInstrs
-                let firstInstr' = snd newInstrs
+                    let memInstr' = fst newInstrs
+                    let firstInstr' = snd newInstrs
 
-                matchLines xn memInstr' labels' firstInstr'
+                    matchLines xn memInstr' labels' firstInstr'
             | [] -> memInstr, labels, firstInstr
 
         let emptyMap : Map<string, int>= Map.empty
