@@ -1,7 +1,5 @@
 module ErrorHandler
 
-open Machine
-
 exception CustomException of string
 
 ///Throws a CustomException that can be caught by the GUI

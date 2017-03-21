@@ -44,11 +44,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <Compile Include="ErrorHandler.fs" />
     <Compile Include="Machine.fs" />
     <Compile Include="InstructionsCommonTypes.fs" />
     <Compile Include="Functions.fs" />
     <Compile Include="CommonOperandFunctions.fs" />
-    <Compile Include="ErrorHandler.fs" />
     <Compile Include="CommonParserFunctions.fs" />
     <Compile Include="Other.fs" />
     <Compile Include="ALU.fs" />

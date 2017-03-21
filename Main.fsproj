@@ -26,9 +26,9 @@
    !  File order is important in F#. Files cannot depend on anything below them.
    !-->
   <ItemGroup>
+    <Compile Include="VSCodeProject/ErrorHandler.fs" />
     <Compile Include="VSCodeProject/Machine.fs" />
     <Compile Include="VSCodeProject/InstructionsCommonTypes.fs" />
-    <Compile Include="VSCodeProject/ErrorHandler.fs" />
     <Compile Include="VSCodeProject/Instruction.fs" />
     <Compile Include="VSCodeProject/Functions.fs" />
     <Compile Include="VSCodeProject/CommonOperandFunctions.fs" />
