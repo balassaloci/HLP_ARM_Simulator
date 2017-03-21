@@ -23,15 +23,18 @@ type ControlInstruction =
         | EInstr of EndInstruction
 
 module BranchParser =
-    let parseLine line : ControlInstruction Maybe =
-        maybe {
+    let parseLine (line:string) : ControlInstruction =
+        if line.StartsWith("END") then
+            let scode = getCond line.[3..]
+            let instr : EndInstruction = {opcode=END; cond=scode}
+            instr |> EInstr
+        else
             let cleanLine = line |> decomment |> trimmer |> splitInstr
-
             let instrStr : string = fst cleanLine
             let paramStr : string = snd cleanLine
             //let splitOper = splitOperands paramStr
 
-            let! instr =
+            let instr =
                 match instrStr with
                 | Prefix "BL" r ->
                     let scode = snd (getSCond r)
@@ -39,7 +42,7 @@ module BranchParser =
                                                         cond = scode;
                                                         label = paramStr}
 
-                    Success combined
+                    combined |> BInstr
 
                 | Prefix "B" r ->
                     let scode = snd (getSCond r)
@@ -47,13 +50,13 @@ module BranchParser =
                                                         cond = scode;
                                                         label = paramStr}
 
-                    Success (combined)
-                //| Prefix "B" r -> Error
-                | _ ->  Error <| (ParseError "Unable to parse branch instruction")
-                        
-            return instr |> BInstr
+                    combined |> BInstr
 
-        }
+                | x ->  failc ("Unable to parse branch instruction: " + x)
+                        
+            instr
+
+    
        
     
 [<RequireQualifiedAccess; 
@@ -63,9 +66,7 @@ module ControlInstruction =
     open BranchParser
 
     let parse: string -> ControlInstruction =
-        fun x-> match parseLine x with
-                | Success t -> t
-                | Error x -> failc "%A" x
+        parseLine
 
     let private executeBranch (label:string) state = 
         let nextInstructionAddress = State.getLabelAddress label state

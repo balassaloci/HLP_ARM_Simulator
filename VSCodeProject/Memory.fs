@@ -195,15 +195,27 @@ module MemoryParser =
         let split' = splitOper.Tail
         //printfn "split' done"
         let op2'  = split'.Head |> trimmer |> remOpenSquareBrkt
-        //printfn "remOpenS done"
+        //printfn "remOpenS done %A" op2'
         let op2 = snd (optRemEnd op2' "]") |> getRegIndex
-        //printfn "Op2 done %A" split'.Tail
+        //printfn "Op2 done %A" op2
 
-        let cleanAddrMethod = getAddressMethod (split'.Tail)
+
+        let cleanAddrMethod = getAddressMethod (split') //.Tail)
         //printfn "CleanAddrMethod done"
+
         let aMethod = snd cleanAddrMethod
-        let cleanOps:string list = fst cleanAddrMethod
-        let offset = parseExecOperand cleanOps.Head cleanOps.Tail
+
+        let offset = 
+
+
+            if split'.Tail.Length > 0 then
+                let cleanAddrMethod' = getAddressMethod (split'.Tail)
+                let cleanOps:string list = fst cleanAddrMethod'
+
+            //printfn "parsingExecOperand %A" (cleanOps)
+                Some (parseExecOperand cleanOps.Head cleanOps.Tail)
+            else
+                None
         //printfn "parseExecOperand done"
 
         //let op2Method = optRemEnd op2' "]"
@@ -225,7 +237,8 @@ module MemoryParser =
 
         let operands : SingleMemoryOperands =
             {op1 = op1; op2 = op2; method = aMethod; offset = offset}
-        
+        //printfn "%A" (op1, op2, aMethod, offset)
+
         let opCode : SingleMemoryOpCode =
             {opcode = i; mode = fst conds; condSuffix = snd conds}
        
@@ -247,7 +260,13 @@ module MemoryParser =
         let condUpMode = getCondUpmode instrStr.[3..]
         //printfn "condUpMode %A" splitOper.Head
 
-        let op1 = splitOper.Head |> getRegIndex
+        let op1 = 
+            let op1' = splitOper.Head
+            if op1'.EndsWith("!") then
+                op1'.[..1] |> getRegIndex
+            else
+                failc ("Invalid register specification: " + op1' +
+                        ". You should always use (!) after register1 name")
         //printfn "op1 %A" splitOper.Tail
 
         let op2 = unwrapReglist splitOper.Tail

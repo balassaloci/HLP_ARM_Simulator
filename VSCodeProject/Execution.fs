@@ -26,14 +26,18 @@ module ExecuteParser =
                     | "EOR" | "BIC" | "ORR" -> ALUInst <| ALUInstruction.parse instrS
                 | "MOV" | "MVN" | "LDR" | "STR" | "LDM"
                     | "STM" | "ADR" -> MemInst <| MemoryInstruction.parse instrS
-                | x -> //printfn "calling otherInstruction parse"
+                | x when not (x = "END" || x.StartsWith("B")) -> 
+                       //printfn "calling otherInstruction parse"
                        OInstr <| OtherInstruction.parse instrS
-                
-//                | _ -> failwithf "Unable to parse instruction"
+
+                | _ ->  //printfn "Parsing control instruction %A" instrS
+                        CrInst <| ControlInstruction.parse instrS
+///                | _ -> failc ("Unrecognized instruction1: " + instrS)
             else
+                //printfn "Starting to parse branch instructions"
                 match instrS with
                 | Prefix "B" _ -> CrInst <| ControlInstruction.parse instrS
-                | _ -> failc ("Unrecognized instruction: " + instrS)
+                | _ -> failc ("Unrecognized instruction2: " + instrS)
 
         try
             None, parseInstruction (instrS)

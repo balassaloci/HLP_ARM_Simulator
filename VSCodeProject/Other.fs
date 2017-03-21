@@ -61,7 +61,7 @@ module OtherParser =
 
                 FInst <| instr
             | _ -> 
-                failc "trying to parse potentially 'fill' instructions"
+                failc ("Unrecognized instruction: " + label)
 
             
 
