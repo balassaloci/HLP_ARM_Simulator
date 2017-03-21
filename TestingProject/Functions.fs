@@ -12,22 +12,29 @@ let bitwiseXor op1 op2 =
 let bitwiseClear op1 op2 =
     bitwiseAnd op1 ~~~op2
 
-let leftshift (op1:int) op2 = 
-    let tmpVal = op1 <<< op2-1
-    let carry = (tmpVal >>> 31) &&& 1
-    {body=tmpVal <<< 1; carry=carry}
+let leftshift (op1:int) op2 =
+    if op2 > 0 then
+        let tmpVal = op1 <<< op2-1
+        let carry = (tmpVal >>> 31) &&& 1
+        {body=tmpVal <<< 1; carry=carry}
+    else
+        {body=op1; carry=0}
 
 let rightshift (op1:int) op2 =
-    printf "%A\n" op1
-    let tmpVal = op1 >>> op2-1
-    let carry = tmpVal &&& 1
-    printf "%A %A\n" (tmpVal >>>1) carry
-    {body=tmpVal >>> 1; carry=carry}
+    if op2 > 0 then
+        let tmpVal = op1 >>> op2-1
+        let carry = tmpVal &&& 1
+        {body=tmpVal >>> 1; carry=carry}
+    else
+        {body=op1; carry=0}
 
 let arithmeticShiftRight (op1:int) op2 =
-    let tmpVal = op1 >>> op2-1
-    let carry = tmpVal &&& 1
-    {body=tmpVal >>> 1; carry=carry}
+    if op2 > 0 then
+        let tmpVal = op1 >>> op2-1
+        let carry = tmpVal &&& 1
+        {body=tmpVal >>> 1; carry=carry}
+    else
+        {body=op1; carry=0}
 
 // The carry seems to be the same as MSB bit
 let rotateRight (op1:int) op2 =
@@ -71,8 +78,9 @@ let applyArithmeticFunction core carry op1 op2 =
             | _ -> 0L
     match core with
     | ADD | ADC -> add c op1 op2
-    | SUB | SBC -> subtract c op1 op2
-    | RSC -> subtract c op2 op1
+    | SUB -> subtract 0L op1 op2
+    | SBC -> subtract (1L-c) op1 op2
+    | RSC -> subtract (1L-c) op2 op1
 
 let applyShiftFunction core carry op1 op2 =
     let c = if core = RRX then
@@ -92,8 +100,7 @@ let getBitwiseFunction = function
     | BIC -> bitwiseClear
     | ORR -> bitwiseOr
 
-let applyCompareFunction core op1 op2 =
-    0
+
 let getCompareFunction = function
     | CMP -> compare
     | CMN -> compareNegated
@@ -124,8 +131,8 @@ let checkZero result state =
     State.updateStatusBit Z flag state
     
 let updateArithmeticCSPR state result addition =
-    checkZero result
-    >> checkNegative result
-    >> checkArithmeticCarry result addition
-    >> checkArithmeticOverflow result
-    <| state
+    state
+    |> checkZero result
+    |> checkNegative result
+    |> checkArithmeticCarry result addition
+    |> checkArithmeticOverflow result

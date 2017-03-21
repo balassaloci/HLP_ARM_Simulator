@@ -6,6 +6,7 @@ module Program=
     open Expecto
     open Execution
     open Machine
+    open InstructionsCommonTypes
 
     /// postlude which sets R1 bits to status bit values
     let NZCVToR12 =
@@ -48,7 +49,7 @@ module Program=
             |> List.map (fun n -> R n, trace.[5].ResOut.[R n]) // get reg values before postlude
             |> Map.ofList
         let flagsInt = trace.[0].ResOut.[R 1] //Postlude code sets R1(3:0) equal to NZCV
-        printfn "flagsint=%x, trace=%A" flagsInt trace.[5]
+//        printfn "flagsint=%x, trace=%A" flagsInt trace.[5]
         let flagBool n = (flagsInt &&& (1 <<< n)) > 0
         { 
           FN = flagBool 3
@@ -75,7 +76,7 @@ module Program=
     /// name - name of test
     ///
     let VisualUnitTest name src (flagsExpected:string) (outExpected: (Out * int) list) =
-        testCase name <| fun () ->
+        testCase name <| fun p1 ->
             let mems = outExpected |> List.collect (function | Mem n, x -> [n,x] | _ -> [])
             let memLocs = mems |> List.map fst
             let flags, outs = RunVisualWithFlagsOutLocs memLocs src
@@ -89,8 +90,9 @@ module Program=
             Expecto.Expect.sequenceEqual (outExpected |> List.map getOut) outExpected "Reg and Mem outputs don't match"
 
     
-          
+    let fsConfig = { FsCheck.Config.Default with MaxTest = 5 ; QuietOnSuccess=false}   
     let seqConfig = { Expecto.Tests.defaultConfig with parallel = false}
+    
 
     let mapToVisualReg = function
         | R0 -> R 0
@@ -113,54 +115,177 @@ module Program=
     let mapToVisualFlags (flags:Map<StatusBit,bool>) =
         {FN=flags.[N]; FZ=flags.[Z];FC=flags.[C];FV=flags.[V]}
 
+    let enumerateSimpleCases<'T> =
+        let cases = FSharp.Reflection.FSharpType.GetUnionCases(typeof<'T>)
+        cases |> Array.map (fun c -> (Reflection.FSharpValue.MakeUnion(c,[||]) :?> 'T), c.Name)
+
+    let constructLookup (x:'T) =
+        Map.ofArray (enumerateSimpleCases<'T>)
+
+    let arithmeticToStr = Map.ofArray enumerateSimpleCases<Arithmetic>
+
+    let shiftToStr = Map.ofArray enumerateSimpleCases<Shift>
+    let compareToStr = Map.ofArray enumerateSimpleCases<Compare>
+    let bitwiseToStr = Map.ofArray enumerateSimpleCases<Bitwise>
+
+    let setBitToStr = Map.ofArray [|(UpdateStatus, "S"); (IgnoreStatus, "")|]
+    let condCodeToStr = Map.ofArray enumerateSimpleCases<ConditionSuffix>
+    let registerToStr = Map.ofArray enumerateSimpleCases<RegisterIndex>
+
+
+    let runSimulators instr =
+        let visualResult = (RunVisualWithFlagsOutLocs [0;1;2;3] instr)
+//        let visualFlags, visualRegisters = match visualResult with | (f, r) -> (f, List.map (fun (a,b) -> (a,b)) (Map.toList r))
+
+        let ourResultMachineState = Instruction.prepareState instr |> Instruction.runAll
+
+        let ourRegisters = State.getRegisters ourResultMachineState |> Map.toList |> List.map (fun (a,b) -> mapToVisualReg a, b )
+        let ourFlags = mapToVisualFlags <| State.getStatus ourResultMachineState
+
+        let visualRegisters = State.getRegisters ourResultMachineState |> Map.toList |> List.map (fun (a,b) -> mapToVisualReg a, b )
+        let visualFlags = mapToVisualFlags <| State.getStatus ourResultMachineState
+        ourFlags, ourRegisters, visualFlags, visualRegisters
+
+    let testArithmeticSimple pName f p1c =
+        testPropertyWithConfig fsConfig pName
+        <| fun (opcode:Arithmetic) (setBit:SetBit)
+               (op1Val:int) (op2Val:int)
+               (carry:bool) ->
+            let setupInstr = "MOV R1, #" + (string op1Val) + "\nMOV R2, #" + (string op2Val) + "\n"
+            let instruction = (arithmeticToStr.[opcode]) + (setBitToStr.[setBit]) + " R0, R1, R2"
+            let instr = setupInstr + instruction
+            let ourFlags, ourRegisters, visualFlags, visualRegisters = runSimulators instr
+//            let ourFlags, ourRegisters, visualFlags, visualRegisters = 2, [|2;3|], 2, [|2;3|]
+            Expect.equal ourFlags visualFlags "CSPR register differes"
+            Expect.sequenceEqual ourRegisters visualRegisters "Registers differ"
+
+    let testBitwiseSimple pName f p1c =
+        testPropertyWithConfig fsConfig pName
+        <| fun (opcode:Bitwise) (setBit:SetBit)
+//               (condCode:ConditionSuffix)
+               (op1Val:int) (op2Val:int)
+               (carry:bool) ->
+            let setupInstr = "MOV R1, #" + (string op1Val) + "\nMOV R2, #" + (string op2Val) + "\n"
+            let instruction = (bitwiseToStr.[opcode]) + (setBitToStr.[setBit]) + " R0, R1, R2"
+            let instr = setupInstr + instruction
+
+            let ourFlags, ourRegisters, visualFlags, visualRegisters = runSimulators instr
+
+            Expect.equal ourFlags visualFlags "CSPR register differes"
+            Expect.sequenceEqual ourRegisters visualRegisters "Registers differ"
+
+    let testBitwiseFlexible pName f p1c =
+        testPropertyWithConfig fsConfig pName
+        <| fun (opcode:Bitwise) (setBit:SetBit)
+//               (condCode:ConditionSuffix)
+               (op1Val:int) (op2Val:int) (shift:Shift) (shiftVal:byte)
+               (carry:bool) ->
+            let setupInstr = "MOV R1, #" + (string op1Val) + "\nMOV R2, #" + (string op2Val) + "\n"
+            let instruction = (bitwiseToStr.[opcode]) + (setBitToStr.[setBit]) + " R0, R1, R2, " + (shiftToStr.[shift]) + " #"+ (string <| shiftVal % 32uy)
+            let instr = setupInstr + instruction
+
+            let ourFlags, ourRegisters, visualFlags, visualRegisters = runSimulators instr
+
+            Expect.equal ourFlags visualFlags "CSPR register differes"
+            Expect.sequenceEqual ourRegisters visualRegisters "Registers differ"
+
+
+    let testShiftSimple pName f p1c =
+        testPropertyWithConfig fsConfig pName
+        <| fun (opcode:Shift) (setBit:SetBit)
+//               (condCode:ConditionSuffix)
+               (op1Val:int) (op2Val:uint16)
+               (carry:bool) ->
+            let setupInstr = "MOV R1, #" + (string op1Val) + "\nMOV R2, #" + (string op2Val) + "\n"
+            let instruction = (shiftToStr.[opcode]) + (setBitToStr.[setBit]) + " R0, R1, R2"
+            let instr = setupInstr + instruction
+
+            let ourFlags, ourRegisters, visualFlags, visualRegisters = runSimulators instr
+
+            Expect.equal ourFlags visualFlags "CSPR register differes"
+            Expect.sequenceEqual ourRegisters visualRegisters "Registers differ"
+
+
+    let testArithmeticFlexible pName f p1c =
+        testPropertyWithConfig fsConfig pName
+        <| fun (opcode:Arithmetic) (setBit:SetBit)
+//               (condCode:ConditionSuffix)
+               (op1Val:int) (op2Val:int) (shift:Shift) (shiftVal:byte)
+               (carry:bool) ->
+            let setupInstr = "MOV R1, #" + (string op1Val) + "\nMOV R2, #" + (string op2Val) + "\n"
+            let instruction = (arithmeticToStr.[opcode]) + (setBitToStr.[setBit]) + " R0, R1, R2, " + (shiftToStr.[shift]) + " #"+ (string <| shiftVal % 32uy)
+            let instr = setupInstr + instruction
+
+            let ourFlags, ourRegisters, visualFlags, visualRegisters = runSimulators instr
+
+            Expect.equal ourFlags visualFlags "CSPR register differes"
+            Expect.sequenceEqual ourRegisters visualRegisters "Registers differ"
+
+    let testCompareSimple pName f p1c =
+        testPropertyWithConfig fsConfig pName
+        <| fun (opcode:Compare)
+//               (condCode:ConditionSuffix)
+               (op1Val:int) (op2Val:int)
+               (carry:bool) (zero:bool) (negative:bool) (overflow:bool) ->
+            let setupInstr = "MOV R1, #" + (string op1Val) + "\nMOV R2, #" + (string op2Val) + "\n"
+            let instruction = (compareToStr.[opcode]) + " R0, R1, R2"
+            let instr = setupInstr + instruction
+
+            let ourFlags, ourRegisters, visualFlags, visualRegisters = runSimulators instr
+
+            Expect.equal ourFlags visualFlags "CSPR register differes"
+            Expect.sequenceEqual ourRegisters visualRegisters "Registers differ"
+
+    let testCompareFlexible pName f p1c =
+        testPropertyWithConfig fsConfig pName
+        <| fun (opcode:Compare)
+//               (condCode:ConditionSuffix)
+               (op1Val:int) (op2Val:int) (shift:Shift) (shiftVal:byte)
+               (carry:bool) (zero:bool) (negative:bool) (overflow:bool) ->
+            let setupInstr = "MOV R1, #" + (string op1Val) + "\nMOV R2, #" + (string op2Val) + "\n"
+            let instruction = (compareToStr.[opcode]) + " R1, R2, " + (shiftToStr.[shift]) + " #"+ (string <| shiftVal % 32uy)
+            let instr = setupInstr + instruction
+
+            let ourFlags, ourRegisters, visualFlags, visualRegisters = runSimulators instr
+
+            Expect.equal ourFlags visualFlags "CSPR register differes"
+            Expect.sequenceEqual ourRegisters visualRegisters "Registers differ"
+
+
+    let testConditionCodes pName f p1c =
+        testPropertyWithConfig fsConfig pName
+        <| fun (condCode:ConditionSuffix)
+               (op1Val:int) (op2Val:int)
+               (carry:bool) (zero:bool) (negative:bool) (overflow:bool) ->
+            let opcode = ADD
+            let setupInstr = "MOV R1, #" + (string op1Val) + "\nMOV R2, #" + (string op2Val) + "\n"
+            let instruction = (arithmeticToStr.[opcode]) + (condCodeToStr.[condCode]) + " R0, R1, R2"
+            let instr = setupInstr + instruction
+
+            let ourFlags, ourRegisters, visualFlags, visualRegisters = runSimulators instr
+
+            Expect.equal ourFlags visualFlags "CSPR register differes"
+            Expect.sequenceEqual ourRegisters visualRegisters "Registers differ"
+
+
     [<EntryPoint>]
     let main argv = 
         InitCache defaultParas.WorkFileDir // read the currently cached info from disk to speed things up
         let tests = 
-            testList "Ours against Visual" [
-               // VisualUnitTest "SUB test" "SUB R0, R0, #1" "0000" [R 0, -1]
-//                VisualUnitTest "SUBS test" "SUBS R0, R0, #0" "0110" [R 0, 0]
-//                VisualUnitTest "This ADDS test should fail" "ADDS R0, R0, #4" "0000" [R 0, 4; R 1, 1] // R1 should be 0 but is specified here as 1
-                testCase "Check random instructions" <| fun () ->
-                    let instructionsBase = "MOV R0, #5\nMOV R1, #6\n"
-                    let instructions = instructionsBase + "CMP R0, #5\n"
+            testList "Simulator against Visual" [
+                  testArithmeticSimple "Random arithmetic tests with constant second operand" () ()
+//                  testArithmeticFlexible "Random arithmetic tests with flexible second operand" () ()
+//                  testBitwiseSimple "Random logic tests with constant second operand" () ()
+//                  testBitwiseFlexible "Random logic tests with flexible second operand" () ()
+//                  testShiftSimple "Random shift tests" () ()
+//                  testCompareSimple "Compare opcodes tests with random values in registers" () ()
+//                  testCompareFlexible "Compare opcode tests with flexible second operand" () ()
+//                  testConditionCodes "Random condition code tests with ADD" () ()
 
-                    let initialState = Instruction.prepareState instructions
-                    let ourResultMachineState = Instruction.runAll initialState
-            //        let ourRegisters = State.getRegisters result1 |> Map.toList |> List.map (fun (_,b) -> b)
-
-                    let ourRegisters = State.getRegisters ourResultMachineState |> Map.toList |> List.map (fun (a,b) -> mapToVisualReg a, b )
-                    let ourFlags = mapToVisualFlags <| State.getStatus ourResultMachineState
-
-                    let visualResult = (RunVisualWithFlagsOutLocs [0] instructions)
-                    let (visualFlags, visualRegisters) = 
-                        match visualResult with | (f, r) -> (f, List.map (fun (a,b) -> (a,b)) (Map.toList r))
-//                    let correctResult = visualRegisters
-//                    let ourResult = ourRegisters
-                    
-                    Expect.equal ourFlags visualFlags "CSPR register differes"
-                    Expect.sequenceEqual ourRegisters visualRegisters "Registers differ"
 
             ]
         let rc = runTests seqConfig tests
-//        let instructions = "MOV R0, #1\nMOV R1, #6\nLSRS R0, R0, #1 \nSUBS R2, R0, R1"
-//        let instructionsBase = "MOV R0, #5\nMOV R1, #6\n"
-//        let instructions = instructionsBase + "CMP R0, #5"
-//
-//        let initialState = Instruction.prepareState instructions
-//        let result1 = Instruction.runAll initialState
-////        let ourRegisters = State.getRegisters result1 |> Map.toList |> List.map (fun (_,b) -> b)
-//        let ourRegisters = State.getRegisters result1 |> Map.toList |> List.map (fun (a,b) -> mapToVisualReg a, b )
-//        let ourFlags = State.getStatus result1
-//        let result = (RunVisualWithFlagsOutLocs [0] instructions)
-//        let (flags, registers) = 
-//            match result with
-//            | (f, r) -> (f, List.map (fun (a,b) -> (a,b)) (Map.toList r))
-//        printf "\n\n\n\n%A\n" flags
-//        printf "\n\n\n\n%A\n" [0..15]
-//        printf "%A\n" registers
-//        printf "%A\n" ourRegisters
-//        printf "%A\n" ourFlags
+
         System.Console.ReadKey() |> ignore
         rc
 //        rc // return an integer exit code - 0 if all tests pass

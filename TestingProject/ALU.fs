@@ -200,15 +200,24 @@ module ALUInstruction =
             let op1Val = State.registerValue op1 state
             // TODO: Need to make sure op2 is within bounds
             // ROR in visual has weird specs; OK in ARM specs
-            let op2Val = mixedOperandValue op2 state
+            // Use only the least significant byte
+            let op2Val =
+                match op2 with
+                | Register r -> State.registerValue r state |> (&&&) 0xFF
+                | Literal x ->
+                    if x < 256 then
+                        x
+                    else
+                        raise <| CustomException "Constant second operand in shifts must be less than 256"
+
             let carry = if conditionHolds state CS then 1 else 0
             let {body=result; carry=carry} =
                 applyShiftFunction core carry op1Val op2Val
 
             if S = UpdateStatus then
-                checkZero (int64 result) state
+                if op2Val <> 0 then State.updateStatusBit C (carry=1) state else state
+                |> checkZero (int64 result)
                 |> checkNegative (int64 result)
-                |> State.updateStatusBit C (carry=1)
             else
                 state
             |> State.updateRegister dest (int result)
@@ -228,8 +237,8 @@ module ALUInstruction =
             match core with
             | CMN | CMP -> updateArithmeticCSPR state result (core = CMN)
             | TST | TEQ ->
-                state
-                |> State.updateStatusBit C (carry=1)
+                
+                if carry = 1 then State.updateStatusBit C (carry=1) state else state
                 |> checkNegative result
                 |> checkZero result
         else
@@ -244,8 +253,7 @@ module ALUInstruction =
             let op2Val, carry = execOperandValue op2 state
             let result = getBitwiseFunction core <| op1Val <| op2Val
             if S = UpdateStatus then
-                state
-                |> State.updateStatusBit C (carry=1)
+                if carry = 1 then State.updateStatusBit C (carry=1) state else state
                 |> checkNegative result
                 |> checkZero result
                 |> State.updateRegister dest (int result)
