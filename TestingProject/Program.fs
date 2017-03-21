@@ -90,8 +90,8 @@ module Program=
             Expecto.Expect.sequenceEqual (outExpected |> List.map getOut) outExpected "Reg and Mem outputs don't match"
 
     
-    let fsConfig = { FsCheck.Config.Default with MaxTest = 5 ; QuietOnSuccess=false}   
-    let seqConfig = { Expecto.Tests.defaultConfig with parallel = false}
+    let fsConfig = { FsCheck.Config.Default with MaxTest = 10 ; QuietOnSuccess=false}   
+    let seqConfig = { Expecto.Tests.defaultConfig with parallel = false; parallelWorkers=1}
     
 
     let mapToVisualReg = function
@@ -146,16 +146,29 @@ module Program=
         let visualFlags = mapToVisualFlags <| State.getStatus ourResultMachineState
         ourFlags, ourRegisters, visualFlags, visualRegisters
 
+    let generateFlagsInstructions (carry:bool) (zero:bool) (negative:bool) (overflow:bool) =
+        let genCarryInstr = "MOV R0, #1\nMOV R1, #0\nCMP R0, R1\n"
+        let genOverflowInstr = "MOV R0, #0xF0000000\nMOV R1, #0x7FFFFFFF\nCMP R0, R1\n"
+        let instr =
+            if zero then "MOVS R1, #0\n" else ""
+            +
+            if negative then "MOVS R1, #-1\n" else ""
+            +
+            if carry then genCarryInstr else ""
+            +
+            if overflow then genOverflowInstr else ""
+        instr
+
     let testArithmeticSimple pName f p1c =
         testPropertyWithConfig fsConfig pName
         <| fun (opcode:Arithmetic) (setBit:SetBit)
                (op1Val:int) (op2Val:int)
                (carry:bool) ->
+            printf "Running arithmetic tests!\n"
             let setupInstr = "MOV R1, #" + (string op1Val) + "\nMOV R2, #" + (string op2Val) + "\n"
             let instruction = (arithmeticToStr.[opcode]) + (setBitToStr.[setBit]) + " R0, R1, R2"
-            let instr = setupInstr + instruction
+            let instr = (generateFlagsInstructions carry false false false) + setupInstr + instruction
             let ourFlags, ourRegisters, visualFlags, visualRegisters = runSimulators instr
-//            let ourFlags, ourRegisters, visualFlags, visualRegisters = 2, [|2;3|], 2, [|2;3|]
             Expect.equal ourFlags visualFlags "CSPR register differes"
             Expect.sequenceEqual ourRegisters visualRegisters "Registers differ"
 
@@ -167,7 +180,7 @@ module Program=
                (carry:bool) ->
             let setupInstr = "MOV R1, #" + (string op1Val) + "\nMOV R2, #" + (string op2Val) + "\n"
             let instruction = (bitwiseToStr.[opcode]) + (setBitToStr.[setBit]) + " R0, R1, R2"
-            let instr = setupInstr + instruction
+            let instr = (generateFlagsInstructions carry false false false) + setupInstr + instruction
 
             let ourFlags, ourRegisters, visualFlags, visualRegisters = runSimulators instr
 
@@ -180,9 +193,10 @@ module Program=
 //               (condCode:ConditionSuffix)
                (op1Val:int) (op2Val:int) (shift:Shift) (shiftVal:byte)
                (carry:bool) ->
+            let shift' = if shift = RRX then ROR else shift
             let setupInstr = "MOV R1, #" + (string op1Val) + "\nMOV R2, #" + (string op2Val) + "\n"
-            let instruction = (bitwiseToStr.[opcode]) + (setBitToStr.[setBit]) + " R0, R1, R2, " + (shiftToStr.[shift]) + " #"+ (string <| shiftVal % 32uy)
-            let instr = setupInstr + instruction
+            let instruction = (bitwiseToStr.[opcode]) + (setBitToStr.[setBit]) + " R0, R1, R2, " + (shiftToStr.[shift']) + " #"+ (string <| shiftVal % 32uy)
+            let instr = (generateFlagsInstructions carry false false false) + setupInstr + instruction
 
             let ourFlags, ourRegisters, visualFlags, visualRegisters = runSimulators instr
 
@@ -198,7 +212,7 @@ module Program=
                (carry:bool) ->
             let setupInstr = "MOV R1, #" + (string op1Val) + "\nMOV R2, #" + (string op2Val) + "\n"
             let instruction = (shiftToStr.[opcode]) + (setBitToStr.[setBit]) + " R0, R1, R2"
-            let instr = setupInstr + instruction
+            let instr = (generateFlagsInstructions carry false false false) + setupInstr + instruction
 
             let ourFlags, ourRegisters, visualFlags, visualRegisters = runSimulators instr
 
@@ -212,9 +226,11 @@ module Program=
 //               (condCode:ConditionSuffix)
                (op1Val:int) (op2Val:int) (shift:Shift) (shiftVal:byte)
                (carry:bool) ->
+            let shift' = if shift = RRX then ROR else shift
             let setupInstr = "MOV R1, #" + (string op1Val) + "\nMOV R2, #" + (string op2Val) + "\n"
-            let instruction = (arithmeticToStr.[opcode]) + (setBitToStr.[setBit]) + " R0, R1, R2, " + (shiftToStr.[shift]) + " #"+ (string <| shiftVal % 32uy)
-            let instr = setupInstr + instruction
+            let instruction = (arithmeticToStr.[opcode]) + (setBitToStr.[setBit]) + " R0, R1, R2, " + (shiftToStr.[shift']) + " #"+ (string <| shiftVal % 32uy)
+            printf "flex arithmetic: %A\n\n" instruction
+            let instr = (generateFlagsInstructions carry false false false) + setupInstr + instruction
 
             let ourFlags, ourRegisters, visualFlags, visualRegisters = runSimulators instr
 
@@ -229,7 +245,7 @@ module Program=
                (carry:bool) (zero:bool) (negative:bool) (overflow:bool) ->
             let setupInstr = "MOV R1, #" + (string op1Val) + "\nMOV R2, #" + (string op2Val) + "\n"
             let instruction = (compareToStr.[opcode]) + " R0, R1, R2"
-            let instr = setupInstr + instruction
+            let instr = (generateFlagsInstructions carry zero negative overflow) + setupInstr + instruction
 
             let ourFlags, ourRegisters, visualFlags, visualRegisters = runSimulators instr
 
@@ -242,9 +258,10 @@ module Program=
 //               (condCode:ConditionSuffix)
                (op1Val:int) (op2Val:int) (shift:Shift) (shiftVal:byte)
                (carry:bool) (zero:bool) (negative:bool) (overflow:bool) ->
+            let shift' = if shift = RRX then ROR else shift
             let setupInstr = "MOV R1, #" + (string op1Val) + "\nMOV R2, #" + (string op2Val) + "\n"
-            let instruction = (compareToStr.[opcode]) + " R1, R2, " + (shiftToStr.[shift]) + " #"+ (string <| shiftVal % 32uy)
-            let instr = setupInstr + instruction
+            let instruction = (compareToStr.[opcode]) + " R1, R2, " + (shiftToStr.[shift']) + " #"+ (string <| shiftVal % 32uy)
+            let instr = (generateFlagsInstructions carry zero negative overflow) + setupInstr + instruction
 
             let ourFlags, ourRegisters, visualFlags, visualRegisters = runSimulators instr
 
@@ -260,7 +277,7 @@ module Program=
             let opcode = ADD
             let setupInstr = "MOV R1, #" + (string op1Val) + "\nMOV R2, #" + (string op2Val) + "\n"
             let instruction = (arithmeticToStr.[opcode]) + (condCodeToStr.[condCode]) + " R0, R1, R2"
-            let instr = setupInstr + instruction
+            let instr = (generateFlagsInstructions carry zero negative overflow) + setupInstr + instruction
 
             let ourFlags, ourRegisters, visualFlags, visualRegisters = runSimulators instr
 
@@ -271,10 +288,26 @@ module Program=
     [<EntryPoint>]
     let main argv = 
         InitCache defaultParas.WorkFileDir // read the currently cached info from disk to speed things up
+        printf "%A\n" seqConfig
         let tests = 
             testList "Simulator against Visual" [
+//            testCase "Comparisons" <|
+//                    fun (condCode:ConditionSuffix)
+//                       (op1Val:int) (op2Val:int)
+//                       (carry:bool) (zero:bool) (negative:bool) (overflow:bool) ->
+//                    let opcode = ADD
+//                    let setupInstr = "MOV R1, #" + (string op1Val) + "\nMOV R2, #" + (string op2Val) + "\n"
+//                    let instruction = (arithmeticToStr.[opcode]) + (condCodeToStr.[condCode]) + " R0, R1, R2"
+//                    let instr = (generateFlagsInstructions carry zero negative overflow) + setupInstr + instruction
+//
+//                    let ourFlags, ourRegisters, visualFlags, visualRegisters = runSimulators instr
+//
+//                    Expect.equal ourFlags visualFlags "CSPR register differes"
+//                    Expect.sequenceEqual ourRegisters visualRegisters "Registers differ"
+
+
                   testArithmeticSimple "Random arithmetic tests with constant second operand" () ()
-//                  testArithmeticFlexible "Random arithmetic tests with flexible second operand" () ()
+                  testArithmeticFlexible "Random arithmetic tests with flexible second operand" () ()
 //                  testBitwiseSimple "Random logic tests with constant second operand" () ()
 //                  testBitwiseFlexible "Random logic tests with flexible second operand" () ()
 //                  testShiftSimple "Random shift tests" () ()
@@ -284,8 +317,9 @@ module Program=
 
 
             ]
-        let rc = runTests seqConfig tests
-
+//        let rc = 0
+//        let rc = runTests seqConfig <| testArithmeticSimple "Random arithmetic tests with constant second operand" () ()
+        let rc = runTests seqConfig <| tests
         System.Console.ReadKey() |> ignore
         rc
 //        rc // return an integer exit code - 0 if all tests pass
