@@ -82,7 +82,7 @@ let (|EatLine|_|) (stream:CodeMirrorStream) =
     Some(stream)    
 
 
-// get all supported instructions from manual lists
+/// get all supported instructions from manual lists
 let supportedInstructions =
     let transformToRegex lst =
         "(" + (lst |> String.concat "|") + ")"

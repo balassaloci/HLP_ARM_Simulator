@@ -59,13 +59,13 @@ let cmEditor () =
     -> Returns new model as well as jsCalls that will be executed
 *****************************************************************)
 let update model msg =
-
+    /// switch buttons to Reset Buttons if Execution is ended
     let newButtons machine button =    
         List.map (fun b -> if (b = button && (State.checkEndExecution machine)) then BReset else b ) model.Buttons
-
-    let run s =
+    /// Run the Backend and Catch Errors
+    let run str =
         try
-            let initState = Instruction.prepareState s
+            let initState = Instruction.prepareState str
             let newMachine = Instruction.runAll initState
             {model with MachineState = newMachine; Buttons = (newButtons newMachine BRunAll); Runstate = Init} 
         with
@@ -125,30 +125,23 @@ let update model msg =
     -> This builds the whole HTML / DOM structure of the app
 *****************************************************************)
 
-/// creates DOM for Buttons in Nav
-let buttonOnClick label cl func =
-    li  []
-        [
-            p [attribute "class" "navbar-btn"]
-                [
-                a [ attribute "type" "button"
-                    attribute "class" ("btn btn-" + cl)
-                    onMouseClick func]
-                    [ text label] 
-                ]
-        ]
+/// Mapping of Buttons to Actions and Button DOM
+let runButton button = 
+    let buttonOnClick label cl func =
+        li  []
+            [
+                p [attribute "class" "navbar-btn"]
+                    [
+                    a [ attribute "type" "button"
+                        attribute "class" ("btn btn-" + cl)
+                        onMouseClick func]
+                        [ text label] 
+                    ]
+            ]
 
-let fetchAndRun x = 
-    // get editorValue
-    Run (cmEditor().getValue())
-
-let fetchAndRunOne x = 
-    // get editorValue
-    RunOne (cmEditor().getValue())
-
-let runButton = function
-    | BRunAll -> buttonOnClick "Run" "default" fetchAndRun
-    | BRunStep -> buttonOnClick "Run Step" "default" fetchAndRunOne
+    match button with
+    | BRunAll -> buttonOnClick "Run" "default" (fun x -> Run (cmEditor().getValue()))
+    | BRunStep -> buttonOnClick "Run Step" "default" (fun x -> RunOne (cmEditor().getValue()))
     | BReset -> buttonOnClick "Reset" "success" (fun x -> Reset)
     | BResetUnsuccessful -> buttonOnClick "Reset" "danger" (fun x -> Reset)
 
@@ -157,12 +150,7 @@ let message msg =
     div [attribute "class" "dismissalert alert alert-warning alert-dismissible alert-head"
          attribute "role" "alert"
          attribute "id" "alert"
-         onMouseClick (fun e -> ErrorMessage "")]
-        //  Popover by activating the following and then message.popover('show')
-        //  attribute "data-toggle" "popover"
-        //  attribute "data-trigger" "focus" 
-        //  attribute "data-placement" "bottom" 
-        //  attribute "data-content" "Vivamus sagittis lacus vel augue laoreet rutrum faucibus."]
+         onMouseClick (fun e -> ErrorMessage "")]   // close Error
         [
             button [attribute "type" "button"
                     attribute "class" "close"
@@ -191,16 +179,14 @@ let popover message =
         ]
 
 
-/// Header DOM
+/// Error Message Logic
 let displayMessage (msg: string) =
-    printfn "ARR: %A" (msg.Split('\n',':'))
     match msg.Split('\n') |> Array.toList with
     | "" :: _ -> []
-    // | h  when String.length m < 20  -> [message m]
     | h :: tl when String.length h < 50 -> [message h; popover (String.concat "" tl)]
     | _ -> [message "Error"; popover msg]
                         
-
+/// Navigation Header with Buttons Title and ErrorMessage Div
 let header model =
     nav [attribute "class" "navbar navbar-inverse navbar-fixed-top"]
         [
@@ -237,23 +223,22 @@ let header model =
                 ]
         ]
 
-
+/// Memory Table
 let memorywrapper memory =
+
+    let memoryline (address, value) =
+        tr []
+            [
+                th [attribute "scope" "row"] [text address]
+                td [][text "?"]
+                td [][text "?"]
+                td [][text "?"]
+                td [][text "?"]
+                td [][text value]
+            ]
     let memorytable memory = 
-
-        let memoryline (address, value) =
-            tr []
-                [
-                    th [attribute "scope" "row"] [text address]
-                    td [][text "?"]
-                    td [][text "?"]
-                    td [][text "?"]
-                    td [][text "?"]
-                    td [][text value]
-                ]
-    
         let convertAddressValue (name, value) =  name.ToString(), value.ToString()
-
+        
         memory
         |> Map.toList
         |> List.map(convertAddressValue >> memoryline)
@@ -277,8 +262,8 @@ let memorywrapper memory =
                     (memorytable memory)
           ]
 
+/// Memory Div underneath the Editor
 let memory mem =
-
     div [attribute "class" "panel-group"
          attribute "id" "accordion"
          attribute "role" "tablist"
@@ -361,7 +346,7 @@ let statusBits machineState =
         |> Map.toList
         |> List.map (convertSystemBits >> oneRegisterHorizontalWrapper)
         
-
+/// App Body with two columns
 let body model =
     div [attribute "class" "container starter-template"]
         [
@@ -391,12 +376,12 @@ let view model =
     section [attribute "class" "app-wrapper"]
             ([(header model); (body model)])
 
-
-
-/// Main function that sets up the application
+(****************************************************************
+    Main function that sets up the application
+*****************************************************************)
 let main () =
 
-    printfn "Starting..."
+    printfn "Initialising..."
     let initMachineState = State.makeInitialState [||] Map.empty<string, int>
 
     printfn "Creating state"
@@ -406,10 +391,12 @@ let main () =
                      Runstate = Init; 
                      ErrorMessage = ""}
 
+    // create MVC app
     createApp initModel view update Virtualdom.createRender
     |> withStartNodeSelector "#app"
     |> start
 
+    printfn "Initialising CodeMirror"
     let initEditor =
         let editId = getById<Fable.Import.Browser.HTMLTextAreaElement> "code"
         let options = [App.CodeMirrorImports.LineNumbers]
@@ -417,27 +404,15 @@ let main () =
 
     match editorWrapper with
     | Uninit -> editorWrapper <- CM initEditor
-    | _ -> failwithf "not possible"
+    | _ -> failwithf "not able to setup CodeMirror"
 
     cmEditor().setSize ("749", "400")
+    // initial example
     cmEditor().setValue "ADD R0, R0, R1
 SUB R0, R0, R1
 LSL R0, R1, #4
 SUB R0, R0, #5"
-//     cmEditor().setValue "        MOV R0, #1024          ; R0 is input, decreases by factors of 10
-//         MOV R1, #0             ; R1 is sum of digits
-//         MOV R2, #0x19000000    ; R2 is constantly 0x1999999A
-//         ORR R2, R2, #0x00990000
-//         ORR R2, R2, #0x00009900
-//         ORR R2, R2, #0x0000009A
-//         MOV R3, #10            ; R3 is constantly 10
-// loop    UMULL R4, R5, R0, R2   ; R5 is R0 / 10
-//         UMULL R4, R6, R5, R3   ; R4 is now 10 * (R0 / 10)
-//         SUB R4, R0, R4         ; R5 is now one's digit of R0
-//         ADD R1, R1, R4         ; add it into R1
-//         MOVS R0, R5
-//         BNE loop"
 
-    
+// Call Main as a starting Point
 main()
 
