@@ -58,30 +58,6 @@ let cmEditor () =
     -> Called every time the view throws an update action
     -> Returns new model as well as jsCalls that will be executed
 *****************************************************************)
-
-// REPLACE WITH THIS, AS SOON AS ERROR HANDLING IS IMPLEMENTED
-// let processOneLine s machineState =
-//     maybe {
-//         let! parsed = Parser.ParseText s
-//         let! executed = Execution.executeALUInstructionList machineState
-//         return executed
-//     }
-// let parseAndRun str state =
-//     let optionGetter = function
-//             | Some x -> x
-//             | None -> failwithf "no!"
-//     str |> ParseText |> List.map optionGetter |> executeALUInstructionList state
-
-
-
-//let runOnce
-// let catchAndDisplayError model f:('a -> Model) =
-//     try
-//         f
-//     with
-//         | CustomException(msg) -> {model with ErrorMessage = msg; Runstate = Init}
-
-
 let update model msg =
 
     let newButtons machine button =    
@@ -111,8 +87,6 @@ let update model msg =
                    {model with Buttons = defaultButtonState; MachineState = resetState; Runstate = Init}
         | ErrorMessage msg -> {model with ErrorMessage = msg}
         | _ ->  model 
-
-    printfn "END: %b" (State.checkEndExecution model'.MachineState)
     
     // handle sideeffects separately
     let jsCall =
@@ -220,12 +194,11 @@ let popover message =
 /// Header DOM
 let displayMessage (msg: string) =
     printfn "ARR: %A" (msg.Split('\n',':'))
-    match msg with
-    | "" -> []
-    | m when String.length m < 20  -> [message m]
-    | m -> match m.Split('\n') |> Array.toList with
-           | h :: tl -> [message h; popover (String.concat "" tl)]
-           | _ -> [message m]
+    match msg.Split('\n') |> Array.toList with
+    | "" :: _ -> []
+    // | h  when String.length m < 20  -> [message m]
+    | h :: tl when String.length h < 50 -> [message h; popover (String.concat "" tl)]
+    | _ -> [message "Error"; popover msg]
                         
 
 let header model =
@@ -263,9 +236,6 @@ let header model =
                         ]
                 ]
         ]
-
-
-
 
 
 let memorywrapper memory =
@@ -449,6 +419,7 @@ let main () =
     | Uninit -> editorWrapper <- CM initEditor
     | _ -> failwithf "not possible"
 
+    cmEditor().setSize ("749", "400")
     cmEditor().setValue "ADD R0, R0, R1
 SUB R0, R0, R1
 LSL R0, R1, #4
@@ -466,11 +437,7 @@ SUB R0, R0, #5"
 //         ADD R1, R1, R4         ; add it into R1
 //         MOVS R0, R5
 //         BNE loop"
-        
-    // highlight one line in editor
-    // let doc = cmEditor().getDoc()
-    // printf "%A" (doc.addLineClass(0,"background", "line-bg"))
-    // printf "%A" (cmEditor().setLineClass (1.0, "fg", "line-bg"))
+
     
 main()
 
