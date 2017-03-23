@@ -121,6 +121,11 @@ module Instruction =
         State.makeInitialState instructions labels
         |> executeSpecialInstr specialInstrList
 
+    let prepareStateWOParser (instrs:array<Instruction>) labels specialInstrs =
+        let specialInstrList = List.ofArray specialInstrs
+        State.makeInitialState instrs labels
+        |> executeSpecialInstr specialInstrList
+
     let runOnce state =
         let pcAddress = State.registerValue PC state
         let instr = State.getInstruction pcAddress state

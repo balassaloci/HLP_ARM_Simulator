@@ -6,8 +6,6 @@ open Functions
 open CommonOperandFunctions
 open CommonParserFunctions
 open ErrorHandler
-// TODO: the link shows something really weird
-//     http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0552a/CIHDDCIF.html
 
 
 type private 'T ALUOpCode = {opcode:'T; setBit:SetBit;
@@ -87,11 +85,6 @@ module ALUParser =
         | _ -> failc "Unrecognized operand pattern"
 
 
-    //let fst' (a, b) maybe = a
-    //let extract x = match x with
-    //                | Success y -> y
-    //                | _ -> failwith "Unable to parse x"
-
     let parseLine line =
 
         let cleanLine = line |> decomment |> trimmer |> splitInstr
@@ -125,7 +118,7 @@ module ALUParser =
             let opers = parseBitwiseOperands splitOper
             BInst {operation = AOpCode; operands = opers}
 
-        
+
 
 [<RequireQualifiedAccess;
 CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
@@ -141,11 +134,8 @@ module ALUInstruction =
         AInst {ArithmeticInstr.operation=opcode;
                ArithmeticInstr.operands=operands}
 
-    /// Check whether R13 and PC are correctly used, if they are
+    /// Check whether R13 and PC are correctly used
     let private areValidArithmeticOperands opcode dest op1 op2 =
-        // if op2 = PC || op2 = R13 then
-            // false
-        // else
             true
 
     let private executeArithmetic state (instr:ArithmeticInstr)=
@@ -166,7 +156,7 @@ module ALUInstruction =
             if S = UpdateStatus then
                 let addition = match core with
                                | ADD | ADC -> true
-                               | SUB | SBC | RSC -> false
+                               | SUB | RSB | SBC | RSC -> false
                 updateArithmeticCSPR state result addition
             else
                 state
@@ -182,9 +172,6 @@ module ALUInstruction =
             let op2 = instr.operands.op2
 
             let op1Val = State.registerValue op1 state
-            // TODO: Need to make sure op2 is within bounds
-            // ROR in visual has weird specs; OK in ARM specs
-            // Use only the least significant byte
             let op2Val =
                 match op2 with
                 | Register r -> State.registerValue r state |> (&&&) 0xFF
@@ -199,9 +186,9 @@ module ALUInstruction =
                 applyShiftFunction core carry op1Val op2Val
 
             if S = UpdateStatus then
-                checkZero (int64 result) state
+                if op2Val <> 0 then State.updateStatusBit C (carry=1) state else state
+                |> checkZero (int64 result)
                 |> checkNegative (int64 result)
-                |> State.updateStatusBit C (carry=1)
             else
                 state
             |> State.updateRegister dest (int result)
@@ -214,7 +201,6 @@ module ALUInstruction =
             let op1 = instr.operands.op1
             let op2 = instr.operands.op2
             let op1Val = int64 <| State.registerValue op1 state
-            // Must do this with MOV and MVN as well
             let op2Val, carry = execOperandValue op2 state
             let result = getCompareFunction core <| op1Val <| op2Val
 
