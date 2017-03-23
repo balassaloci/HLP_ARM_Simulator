@@ -39,7 +39,7 @@ let isNumeric a = fst (System.Int32.TryParse(a))
 //Parsing Hexadecimal or decimal literals
 let parseLiteral a =
     let hexStringToInt (str: string) =
-        //TODO: Make this /if/ forest nicer by simplifying out statements from r
+
         let inline getIntVal c = 
             if (c >= '0' && c <= '9') ||
                 (c >= 'a' && c <= 'f') ||
@@ -59,7 +59,7 @@ let parseLiteral a =
 
 //Parses the register index (or fails)
 let getRegIndex (r:string) =
-    //printfn "gettinc reg index for:%A:" r
+
     match r.Trim() with
     | "R0" -> R0   
     | "R1" -> R1  
@@ -79,7 +79,7 @@ let getRegIndex (r:string) =
     | "CSPR" | "LR" | "PC" | _ -> failc ("Invalid register: " + r)
 
 let getCond x =
-    //printfn "getting cond suffix %A" x
+
     match x with
     | "EQ" -> EQ
     | "NE" -> NE
@@ -145,7 +145,6 @@ let parseShift shift =
     | _ ->  failc ("Unable to parse shift instruction: " + shift)
 
 let parseMixedOp (op: string) =
-    //printfn "parsing mixed op %A" op
     match op.Trim() with
     | Prefix "#" rest -> Literal (parseLiteral rest)
     | reg -> Register (reg |> getRegIndex)
@@ -154,41 +153,23 @@ let parseExecOperand (op: string) (rest: string list) =
 
     let trimmed (s:string) = s.Trim()
     let parseRest r restreg =
-        //printfn "parsign rest"
+
         let r' = r |> trimmed
-        //printfn "r' is %A" r'
+
         if r'.Length < 3 then
 
             failc ("Unable to parse shift instruction: " + r' +
                     "\nPossible incorrect use of parameters")
         else 
-            //printfn "parsing the rest %A " (r, restreg)
+
             let shiftOp = parseShift (r |> trimmed).[..2]
-            //printfn "parsing mixed op %A " r
             let mOp = parseMixedOp (r |> trimmed).[3..]
             ExprOp <| (restreg, shiftOp, mOp)
 
-    //printfn "trying to parse exec operand"
+    
     match rest with
     | [] ->
-        //printfn "parsing empty rest"
         MixedOp <| (parseMixedOp op)
     | x::xn ->
-        //printfn "parsing full rest %A" (x, op)
         parseRest x (op |> getRegIndex)
 
-
-
-    //printfn "tryint to parse op %A" op
-
-
-
-/////////////////////////////////////////////
-//let splitter (s:string) = s.Split([|','; ' '; '\n'; '\n'; '\r'; '\f'|], 
-//                            System.StringSplitOptions.RemoveEmptyEntries)
-
-
-
-//let lsplit line : string list = splitter line |> Array.toList
-
-//let repack (a, (b, c)) = (a, b, c)

@@ -6,7 +6,6 @@ open CommonOperandFunctions
 open CommonParserFunctions
 open ErrorHandler
 
-//TODO: Special instructions to be added here, don't forget to parse them too ;)
 type Move = | MOV | MVN
 type SingleMemory = | LDR | STR
 type MultipleMemory = | LDM | STM
@@ -73,21 +72,6 @@ module MemoryParser =
         | "DA" -> DA
         | "DB" -> DB
         | x -> failc ("Unable to parse Update Mode: " + x)
-
-    //let getCondB (condBS:string) =
-    //    //printfn "getCondB %A" condBS
-
-    //    match condBS.Length with
-    //    | 1 -> AL, getMemoryMode condBS
-    //    | 2 -> getCond condBS, getMemoryMode ""
-    //    | 3 -> //printfn "branch 3: %A" condBS.[..1]
-    //           let c = getCond condBS.[..1]
-    //           //printfn "gOther c"
-    //           let c' = getMemoryMode condBS.[2..2]
-    //           //printfn "got c'"
-    //           getCond condBS.[..1], getMemoryMode condBS.[2..2]
-    //    | _ -> failwith "Invalid condition code"
-    
     
     let getBCond = function
         | Prefix "B" cond -> Byte, getCond cond
@@ -98,11 +82,6 @@ module MemoryParser =
         | 2 -> AL, getUpdateMode condUM
         | 4 -> (getCond condUM.[2..3]), (getUpdateMode condUM.[..1])
         | _ -> failc ("Invalid condition or update mode for memory instruction: " + condUM)
-
-
-    //let remOpenSquareBrkt ( = function
-    //    | x::xn when x = '[' -> xn
-    //    | _ -> failwith "Invalid register specification"
 
     let remOpenSquareBrkt (x:string) =
         //printfn "remOpenSquareBrkt %A" x
@@ -163,7 +142,6 @@ module MemoryParser =
         | _ -> failc "Unable to parse memory instruction %A" instruction
     
     let parseMoveInstruction (i:Move) (instrStr:string) splitOper =
-        //printfn "Parsing move instruction"
 
         match splitOper with
         | op1S :: op2S :: restS ->

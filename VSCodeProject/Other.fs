@@ -27,13 +27,11 @@ module OtherParser =
             let num = snd cleanLine |> int
             let instr: FillMemoryInstr =
                 {opcode=FILL; label = None; op1 = num}
-            //printfn "instr done %A" (instr.opcode, instr.label, instr.op1)
             FInst <| instr
         else
             let instruction = snd cleanLine |> splitInstr
             let opcode' : string = fst instruction
 
-            //printfn "about to parse opcode %A" opcode'
             match opcode' with
             | "DCD" | "DCB" ->
                 let prms: string list = snd instruction |> splitOperands
@@ -57,16 +55,11 @@ module OtherParser =
                 let instr: FillMemoryInstr =
                     {opcode=FILL; label = Some label; op1 = num}
 
-                //printfn "instr done %A" (instr.opcode, instr.label, instr.op1)
-
                 FInst <| instr
             | _ -> 
                 failc ("Unrecognized instruction: " + label)
 
             
-
-        //printfn "%A" (label, opcode, prms)
-
     
 
 [<RequireQualifiedAccess;
