@@ -6,7 +6,6 @@ open CommonOperandFunctions
 open CommonParserFunctions
 open ErrorHandler
 
-//TODO: Special instructions to be added here, don't forget to parse them too ;)
 type Move = | MOV | MVN
 type SingleMemory = | LDR | STR
 type MultipleMemory = | LDM | STM
@@ -388,7 +387,7 @@ module MemoryInstruction =
                     let rValue = State.registerValue r s
                     let newState = State.updateWordInMemory adr rValue s
                     storeRegisters (adr+iOffset) t newState
-                | _ -> State.updateRegister adrReg (adr+rOffset) state
+                | _ -> State.updateRegister adrReg (adr+rOffset) s
             storeRegisters (address+aOffset) rList state
         else
             failc "address should be a multiple of 4"
@@ -401,10 +400,10 @@ module MemoryInstruction =
                 match regList with
                 | r::t ->
                     let mValue = State.getWordFromMemory adr s
-                    let newState = state |> State.deleteWordInMemory adr
+                    let newState = s |> State.deleteWordInMemory adr
                                         |> State.updateRegister r mValue
                     loadRegisters (adr+iOffset) t newState
-                | _ -> State.updateRegister adrReg (adr+rOffset) state
+                | _ -> State.updateRegister adrReg (adr+rOffset) s
             loadRegisters (address+aOffset) rList state
         else
             failc "address should be a multiple of 4"
@@ -414,8 +413,6 @@ module MemoryInstruction =
         | Label l -> State.getLabelAddress l state
         | Number n -> n
 
-
-//-----------------------------------------------------------------------
     let private executeMove state (instr:MoveInstr) =
         let {opcode = core; mode = setBit; condSuffix = cond} = instr.operation
         if conditionHolds state cond then
@@ -426,11 +423,14 @@ module MemoryInstruction =
             | UpdateStatus -> 
                 let n = (value < 0)
                 let z = (value = 0)
-                let c = (carry = 1)
-                state |> State.updateStatusBit N n
-                      |> State.updateStatusBit Z z
-                      |> State.updateStatusBit C c
-                      |> State.updateRegister dest value
+                if carry = 1 then 
+                    state |> State.updateStatusBit N n
+                          |> State.updateStatusBit Z z
+                          |> State.updateStatusBit C true
+                          |> State.updateRegister dest value
+                else state |> State.updateStatusBit N n
+                           |> State.updateStatusBit Z z
+                           |> State.updateRegister dest value
             | IgnoreStatus -> State.updateRegister dest value state
 
         else
@@ -451,7 +451,7 @@ module MemoryInstruction =
                 else
                     let v = 0
                     let address = 
-                        (State.registerValue op2 state) + int v
+                        (State.registerValue op2 state) 
                     getSingleRegisterMemoryFunction core <|memoryMode <|op1 <|address <|state
             | PreIndexed ->
                 if Option.isSome offset then
@@ -463,7 +463,7 @@ module MemoryInstruction =
                 else
                     let v = 0
                     let address =
-                        (State.registerValue op2 state) + int v
+                        (State.registerValue op2 state) 
                     let newState = State.updateRegister op2 address state
                     getSingleRegisterMemoryFunction core <|memoryMode <|op1 <|address <|newState
             | PostIndexed ->
@@ -475,7 +475,7 @@ module MemoryInstruction =
                 else
                     let address = State.registerValue op2 state
                     let v = 0
-                    let newState = State.updateRegister op2 (address + int v) state
+                    let newState = State.updateRegister op2 address state
                     getSingleRegisterMemoryFunction core <|memoryMode <|op1 <|address <|newState
         else
             state
@@ -506,3 +506,26 @@ module MemoryInstruction =
         |SInst si -> executeSingleRegisterMemoryInstruction state si
         |MuInst mui -> executeMultipleRegisterMemoryInstruction state mui
         |LInst li -> executeLoadAddressInstruction state li
+
+    let makeMoveSample (instr:Move) (s:SetBit) (cond:ConditionSuffix) (d:RegOperand) (exp: ExecOperand) =
+        let opcode:MoveOpCode = {opcode = instr; mode = s; condSuffix = cond}
+        let ops:MoveOperands = {dest = d; op1 = exp}
+        MvInst {MoveInstr.operation = opcode;MoveInstr.operands = ops}
+
+    let makeSingleMemSample (i:SingleMemory) (m:MemoryMode) (c:ConditionSuffix) (r1:RegOperand)
+                            (r2:RegOperand) (a:AddressingMethod) (o:ExecOperand option)  =
+        let opcode = {opcode = i; mode = m; condSuffix = c}
+        let ops = {op1 = r1; op2 = r2; method = a; offset = o}
+        SInst {SingleMemoryInstr.operation = opcode; SingleMemoryInstr.operands = ops}
+
+    let makeMultipleMemSample (i:MultipleMemory) (d:StackDirection) (c:ConditionSuffix)
+                              (r1: RegOperand) (lR2: RegOperand list) =
+        let opcode = {opcode = i; mode = d; condSuffix = c}
+        let ops = {op1 = r1; op2 = lR2}
+        MuInst {MultipleMemoryInstr.operation = opcode; MultipleMemoryInstr.operands = ops}
+
+    let makeLoadAddressSample (i:MemoryAddress) (s:SetBit) (c:ConditionSuffix)
+                               (d:RegOperand) (e:AddressExpression) =
+        let opcode = {opcode = i; mode = s; condSuffix = c}
+        let ops = {dest = d; exp = e}
+        LInst {LoadAddressInstr.operation = opcode; LoadAddressInstr.operands = ops}

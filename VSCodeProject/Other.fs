@@ -8,7 +8,7 @@ type DeclareConstant = | EQU
 type FillMemory = | FILL
 
 type private DeclareWordInstr = {opcode:DeclareWord; label: string; op1:int list}
-type private DeclareConstantInstr = {opcode:DeclareConstant; label: string; op1:int} //op1 can be an expression
+type private DeclareConstantInstr = {opcode:DeclareConstant; label: string; op1:int} 
 type private FillMemoryInstr = {opcode:FillMemory; label: string option; op1:int}
 
 type OtherInstruction =
