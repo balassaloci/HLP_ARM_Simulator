@@ -20,7 +20,7 @@ module ExecuteParser =
         let parseInstruction (instrS: string) : Instruction =
             if instrS.Length > 2 then
                 match instrS.[..2] with
-                | "ADD" | "SUB" | "ADC" | "SBC" | "RSC"
+                | "ADD" | "SUB" | "RSB" | "ADC" | "SBC" | "RSC"
                     | "LSL" | "LSR" | "ASR" | "ROR" | "RRX"
                     | "CMP" | "CMN" | "TST" | "TEQ" | "AND"
                     | "EOR" | "BIC" | "ORR" -> ALUInst <| ALUInstruction.parse instrS

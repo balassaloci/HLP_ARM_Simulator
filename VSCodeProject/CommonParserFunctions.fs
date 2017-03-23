@@ -115,6 +115,7 @@ let getALUInstruction instruction =
     match instruction with
     | "ADD" -> ArithmeticInstructionT ADD
     | "SUB" -> ArithmeticInstructionT SUB
+    | "RSB" -> ArithmeticInstructionT RSB
     | "ADC" -> ArithmeticInstructionT ADC
     | "SBC" -> ArithmeticInstructionT SBC
     | "RSC" -> ArithmeticInstructionT RSC
