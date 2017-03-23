@@ -139,3 +139,8 @@ module OtherInstruction =
         |DwInst dwI -> executeDeclareWordInstruction state dwI
         |DcInst dcI -> executeDeclareConstantInstruction state dcI
         |FInst fI -> executeFillMemoryInstruction state fI
+
+    let makeDCDSample (i:DeclareWord) (l:string) (nL: int list) =
+        DwInst {DeclareWordInstr.opcode = i;
+               DeclareWordInstr.label = l;
+               DeclareWordInstr.op1 = nL}
